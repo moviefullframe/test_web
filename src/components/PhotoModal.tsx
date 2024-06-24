@@ -9,11 +9,19 @@ type SelectedOptions = {
   photoInYearbook: boolean;
   additionalPhotos: boolean;
   vignette: boolean;
+  photo10x15Name: string;
+  photo20x30Name: string;
 };
 
 type Family = {
   id: number;
   family_name: string;
+};
+
+type Photo = {
+  id: number;
+  src: string;
+  alt: string;
 };
 
 type PhotoModalProps = {
@@ -22,6 +30,7 @@ type PhotoModalProps = {
   setSelectedOptions: React.Dispatch<React.SetStateAction<SelectedOptions>>;
   handleConfirmSelection: () => void;
   closeModal: () => void;
+  selectedPhoto: Photo | null;
 };
 
 const PhotoModal: React.FC<PhotoModalProps> = ({
@@ -30,6 +39,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
   setSelectedOptions,
   handleConfirmSelection,
   closeModal,
+  selectedPhoto
 }) => {
   const [families, setFamilies] = useState<Family[]>([]);
 
@@ -38,6 +48,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
       try {
         const res = await axios.get(`/api/families`, { params: { classId: className } });
         setFamilies(res.data);
+        console.log('Families fetched from API:', res.data);
       } catch (error) {
         console.error('Failed to fetch families', error);
       }
@@ -48,15 +59,24 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedPhoto) {
+      alert('Please select a photo.');
+      return;
+    }
     try {
-      const res = await axios.post('/api/saveSelection', {
+      const payload = {
         class_id: className,
         family_name: selectedOptions.lastName,
         photo_chronicle: selectedOptions.photoInYearbook,
         vignette: selectedOptions.vignette,
-        photo_10x15: selectedOptions.photo10x15,
-        photo_20x30: selectedOptions.photo20x30,
-      });
+        photo_10x15_count: selectedOptions.photo10x15,
+        photo_20x30_count: selectedOptions.photo20x30,
+        photo10x15Name: selectedOptions.photo10x15Name,
+        photo20x30Name: selectedOptions.photo20x30Name,
+      };
+      console.log('Payload to be sent to server:', payload);
+
+      const res = await axios.post('/api/saveSelection', payload);
 
       if (res.status === 200) {
         console.log('Selection saved successfully');
@@ -141,10 +161,15 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                   type="number"
                   value={selectedOptions.photo10x15}
                   onChange={(e) =>
-                    setSelectedOptions((prev) => ({
-                      ...prev,
-                      photo10x15: Number(e.target.value),
-                    }))
+                    setSelectedOptions((prev) => {
+                      const newOptions = {
+                        ...prev,
+                        photo10x15: Number(e.target.value),
+                        photo10x15Name: selectedPhoto ? selectedPhoto.alt : prev.photo10x15Name,
+                      };
+                      console.log('Updated selected options for 10x15:', newOptions);
+                      return newOptions;
+                    })
                   }
                 />
               </label>
@@ -154,10 +179,15 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                   type="number"
                   value={selectedOptions.photo20x30}
                   onChange={(e) =>
-                    setSelectedOptions((prev) => ({
-                      ...prev,
-                      photo20x30: Number(e.target.value),
-                    }))
+                    setSelectedOptions((prev) => {
+                      const newOptions = {
+                        ...prev,
+                        photo20x30: Number(e.target.value),
+                        photo20x30Name: selectedPhoto ? selectedPhoto.alt : prev.photo20x30Name,
+                      };
+                      console.log('Updated selected options for 20x30:', newOptions);
+                      return newOptions;
+                    })
                   }
                 />
               </label>

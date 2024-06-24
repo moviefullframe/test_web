@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import mysql, { RowDataPacket } from 'mysql2/promise';
+import mysql, { ResultSetHeader, RowDataPacket } from 'mysql2/promise';
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'POST') {
@@ -11,9 +11,18 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     family_name,
     photo_chronicle,
     vignette,
-    photo_10x15,
-    photo_20x30
+    photo_10x15_count,
+    photo_20x30_count,
+    photo10x15Name,
+    photo20x30Name,
   } = req.body;
+
+  console.log('Received data:', req.body);
+
+  if (!class_id || !family_name || !photo10x15Name || !photo20x30Name) {
+    console.error('Missing required fields');
+    return res.status(400).json({ message: 'Required fields are missing' });
+  }
 
   try {
     const connection = await mysql.createConnection({
@@ -34,16 +43,25 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     const familyId = familyIdResult[0].id;
 
+    // Register file names in `file_names` table and get their IDs
+    const insertFileNameQuery = `
+      INSERT INTO file_names (file_name) VALUES (?),(?)
+      ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)
+    `;
+    const [fileNamesResult] = await connection.execute<ResultSetHeader>(insertFileNameQuery, [photo10x15Name, photo20x30Name]);
+    const file10x15Id = fileNamesResult.insertId;
+    const file20x30Id = fileNamesResult.insertId + 1; // Assumes IDs are sequential
+
     const insertQuery = `
-      INSERT INTO family_photos (family_id, photo_id, photo_chronicle, vignette, photo_size, photo_count)
+      INSERT INTO family_photos (family_id, photo_id, photo_chronicle, vignette, photo_size, photo_count, file_name_id)
       VALUES 
-      (?, ?, ?, ?, '10x15', ?), 
-      (?, ?, ?, ?, '20x30', ?)
+      (?, ?, ?, ?, '10x15', ?, ?), 
+      (?, ?, ?, ?, '20x30', ?, ?)
     `;
 
     await connection.execute(insertQuery, [
-      familyId, 1, photo_chronicle, vignette, photo_10x15, // photo_id для '10x15' = 1
-      familyId, 2, photo_chronicle, vignette, photo_20x30  // photo_id для '20x30' = 2
+      familyId, file10x15Id, photo_chronicle, vignette, photo_10x15_count, file10x15Id,
+      familyId, file20x30Id, photo_chronicle, vignette, photo_20x30_count, file20x30Id
     ]);
 
     connection.end();

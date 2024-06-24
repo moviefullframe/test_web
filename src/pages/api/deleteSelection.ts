@@ -17,7 +17,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       port: 3306,
     });
 
-    const familyIdQuery = 'SELECT id FROM families WHERE family_name = ? AND class_id = (SELECT id FROM classes WHERE class_name = ?)';
+    const familyIdQuery = `
+      SELECT f.id FROM families f
+      JOIN classes c ON f.class_id = c.id
+      WHERE f.family_name = ? AND c.class_name = ?
+    `;
     const [familyIdResult] = await connection.execute<RowDataPacket[]>(familyIdQuery, [family_name, class_id]);
 
     if (familyIdResult.length === 0) {

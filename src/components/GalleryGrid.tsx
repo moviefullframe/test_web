@@ -16,6 +16,8 @@ type SelectedOptions = {
   photoInYearbook: boolean;
   additionalPhotos: boolean;
   vignette: boolean;
+  photo10x15Name: string;
+  photo20x30Name: string;
 };
 
 type GalleryGridProps = {
@@ -24,7 +26,7 @@ type GalleryGridProps = {
   className: string;
   selectedPhoto: Photo | null;
   selectedOptions: SelectedOptions;
-  handleSelectPhoto: (photo: Photo | null) => void; // Изменено здесь
+  handleSelectPhoto: (photo: Photo | null) => void;
   openLightbox: (index: number) => void;
   setSelectedOptions: React.Dispatch<React.SetStateAction<SelectedOptions>>;
 };
@@ -44,7 +46,9 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
   useEffect(() => {
     const fetchPhotos = async () => {
       const folderPath = `schools/${schoolName}/${className}`;
+      console.log('Fetching photos from Yandex Disk with folderPath:', folderPath);
       const items = await YandexDiskService.getFolderContents(folderPath);
+      console.log('Yandex Disk items fetched:', items);
       const fetchedPhotos = items
         .filter((item: any) => item.type === 'file')
         .map((item: any, index: number) => ({
@@ -53,6 +57,7 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
           alt: item.name,
         }));
       setGalleryPhotos(fetchedPhotos);
+      console.log('Photos fetched for gallery grid:', fetchedPhotos);
     };
 
     fetchPhotos();
@@ -76,8 +81,10 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
           photoInYearbook: false,
           additionalPhotos: false,
           vignette: false,
+          photo10x15Name: '',
+          photo20x30Name: '',
         });
-        handleSelectPhoto(null); // Здесь передаем null
+        handleSelectPhoto(null);
       } else {
         console.error('Failed to delete selection');
       }
@@ -107,8 +114,8 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
                 {selectedOptions.vignette && <div className="detailItem">✔ ВИНЬЕТКА</div>}
                 {selectedOptions.additionalPhotos && (
                   <>
-                    <div className="detailItem">Фото 10x15: {selectedOptions.photo10x15}</div>
-                    <div className="detailItem">Фото 20x30: {selectedOptions.photo20x30}</div>
+                    <div className="detailItem">Фото 10x15: {selectedOptions.photo10x15} (Имя файла: {selectedOptions.photo10x15Name})</div>
+                    <div className="detailItem">Фото 20x30: {selectedOptions.photo20x30} (Имя файла: {selectedOptions.photo20x30Name})</div>
                   </>
                 )}
               </div>

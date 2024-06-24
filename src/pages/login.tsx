@@ -16,7 +16,7 @@ const Login = () => {
       
       if (res.status === 200) {
         localStorage.setItem('user', JSON.stringify(res.data));
-        router.push('/gallery');
+        router.push('/galery');
       } else {
         setError('Неверный логин или пароль');
       }

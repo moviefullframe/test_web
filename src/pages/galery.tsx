@@ -23,6 +23,8 @@ type SelectedOptions = {
   photoInYearbook: boolean;
   additionalPhotos: boolean;
   vignette: boolean;
+  photo10x15Name: string;
+  photo20x30Name: string;
 };
 
 const Gallery = () => {
@@ -39,12 +41,15 @@ const Gallery = () => {
     photoInYearbook: false,
     additionalPhotos: false,
     vignette: false,
+    photo10x15Name: '',
+    photo20x30Name: '',
   });
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+      console.log('User loaded from localStorage:', storedUser);
     }
   }, []);
 
@@ -52,7 +57,9 @@ const Gallery = () => {
     const fetchPhotos = async () => {
       if (user.school_name && user.class_name) {
         const folderPath = `schools/${user.school_name}/${user.class_name}`;
+        console.log('Fetching photos from Yandex Disk with folderPath:', folderPath);
         const items = await YandexDiskService.getFolderContents(folderPath);
+        console.log('Yandex Disk items fetched:', items);
         const fetchedPhotos = items
           .filter((item: any) => item.type === 'file')
           .map((item: any, index: number) => ({
@@ -61,6 +68,7 @@ const Gallery = () => {
             alt: item.name,
           }));
         setPhotos(fetchedPhotos);
+        console.log('Photos fetched from Yandex Disk:', fetchedPhotos);
       }
     };
 
@@ -68,6 +76,7 @@ const Gallery = () => {
   }, [user]);
 
   const handleSelectPhoto = (photo: Photo | null) => {
+    console.log('Photo selected:', photo);
     if (selectedPhoto?.id === photo?.id) {
       setSelectedPhoto(null);
       setSelectedOptions({
@@ -77,36 +86,54 @@ const Gallery = () => {
         photoInYearbook: false,
         additionalPhotos: false,
         vignette: false,
+        photo10x15Name: '',
+        photo20x30Name: '',
       });
+      console.log('Selection cleared');
     } else if (photo) {
       setSelectedPhoto(photo);
       setInitialIndex(photo.id - 1);
       setShowModal(true);
+      setSelectedOptions((prev) => {
+        const newOptions = {
+          ...prev,
+          photo10x15Name: photo.alt.includes('10x15') ? photo.alt : prev.photo10x15Name,
+          photo20x30Name: photo.alt.includes('20x30') ? photo.alt : prev.photo20x30Name,
+        };
+        console.log('Selected options updated:', newOptions);
+        return newOptions;
+      });
     }
   };
 
   const handleConfirmSelection = async () => {
     setShowModal(false);
     if (selectedPhoto) {
+      const payload = {
+        class_id: user.class_name,
+        family_name: selectedOptions.lastName,
+        photo_id: selectedPhoto.id,
+        photo_chronicle: selectedOptions.photoInYearbook ? 1 : 0,
+        vignette: selectedOptions.vignette ? 1 : 0,
+        photo_10x15: selectedOptions.photo10x15,
+        photo_20x30: selectedOptions.photo20x30,
+        photo10x15Name: selectedOptions.photo10x15Name,
+        photo20x30Name: selectedOptions.photo20x30Name,
+      };
+      console.log('Payload to be sent to server:', payload);
+
       const res = await fetch('/api/saveSelection', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          class_id: user.class_name,
-          family_name: selectedOptions.lastName,
-          photo_id: selectedPhoto.id,
-          photo_chronicle: selectedOptions.photoInYearbook ? 1 : 0,
-          vignette: selectedOptions.vignette ? 1 : 0,
-          photo_10x15: selectedOptions.photo10x15,
-          photo_20x30: selectedOptions.photo20x30,
-          file_name: selectedPhoto.src,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         console.error('Ошибка при сохранении выбора');
+      } else {
+        console.log('Selection saved successfully.');
       }
     }
   };
@@ -139,7 +166,7 @@ const Gallery = () => {
           selectedOptions={selectedOptions}
           handleSelectPhoto={handleSelectPhoto}
           openLightbox={openLightbox}
-          setSelectedOptions={setSelectedOptions} // Добавлено
+          setSelectedOptions={setSelectedOptions}
         />
       ) : (
         <p>Загрузка фотографий...</p>
@@ -158,6 +185,7 @@ const Gallery = () => {
           setSelectedOptions={setSelectedOptions}
           handleConfirmSelection={handleConfirmSelection}
           closeModal={closeModal}
+          selectedPhoto={selectedPhoto}
         />
       )}
     </div>
