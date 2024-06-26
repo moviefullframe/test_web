@@ -2,23 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import YandexDiskService from '../services/YandexDiskService';
 import styles from '../app/Gallery.module.css';
-
-type Photo = {
-  id: number;
-  src: string;
-  alt: string;
-};
-
-type SelectedOptions = {
-  lastName: string;
-  photo10x15: number;
-  photo20x30: number;
-  photoInYearbook: boolean;
-  additionalPhotos: boolean;
-  vignette: boolean;
-  photo10x15Name: string;
-  photo20x30Name: string;
-};
+import { SelectedOptions, Photo } from '../types';
 
 type GalleryGridProps = {
   photos: Photo[];
@@ -83,6 +67,7 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
           vignette: false,
           photo10x15Name: '',
           photo20x30Name: '',
+          photoInAlbum: false,
         });
         handleSelectPhoto(null);
       } else {
@@ -112,6 +97,7 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
                 <div className="title">ЗАКАЗАНО: {selectedOptions.lastName}</div>
                 {selectedOptions.photoInYearbook && <div className="detailItem">✔ Фото в летопись</div>}
                 {selectedOptions.vignette && <div className="detailItem">✔ ВИНЬЕТКА</div>}
+                {selectedOptions.photoInAlbum && <div className="detailItem">✔ Фото в альбом</div>}
                 {selectedOptions.additionalPhotos && (
                   <>
                     <div className="detailItem">Фото 10x15: {selectedOptions.photo10x15} (Имя файла: {selectedOptions.photo10x15Name})</div>

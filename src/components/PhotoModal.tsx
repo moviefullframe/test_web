@@ -1,28 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import styles from '../app/Gallery.module.css';
-
-type SelectedOptions = {
-  lastName: string;
-  photo10x15: number;
-  photo20x30: number;
-  photoInYearbook: boolean;
-  additionalPhotos: boolean;
-  vignette: boolean;
-  photo10x15Name: string;
-  photo20x30Name: string;
-};
-
-type Family = {
-  id: number;
-  family_name: string;
-};
-
-type Photo = {
-  id: number;
-  src: string;
-  alt: string;
-};
+import { SelectedOptions, Family, Photo } from '../types';
 
 type PhotoModalProps = {
   className: string;
@@ -31,6 +11,18 @@ type PhotoModalProps = {
   handleConfirmSelection: () => void;
   closeModal: () => void;
   selectedPhoto: Photo | null;
+};
+
+const defaultSelectedOptions: SelectedOptions = {
+  lastName: '',
+  photo10x15: 0,
+  photo20x30: 0,
+  photoInYearbook: false,
+  additionalPhotos: false,
+  vignette: false,
+  photo10x15Name: '',
+  photo20x30Name: '',
+  photoInAlbum: false,
 };
 
 const PhotoModal: React.FC<PhotoModalProps> = ({
@@ -42,6 +34,9 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
   selectedPhoto
 }) => {
   const [families, setFamilies] = useState<Family[]>([]);
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<SelectedOptions>({
+    defaultValues: selectedOptions,
+  });
 
   useEffect(() => {
     const fetchFamilies = async () => {
@@ -57,35 +52,44 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     fetchFamilies();
   }, [className]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    const subscription = watch((value) => setSelectedOptions({
+      ...defaultSelectedOptions,
+      ...value,
+    }));
+    return () => subscription.unsubscribe();
+  }, [watch, setSelectedOptions]);
+
+  const onSubmit: SubmitHandler<SelectedOptions> = async (data) => {
     if (!selectedPhoto) {
-      alert('Please select a photo.');
+      alert('Пожалуйста, выберите фото.');
       return;
     }
     try {
       const payload = {
         class_id: className,
-        family_name: selectedOptions.lastName,
-        photo_chronicle: selectedOptions.photoInYearbook,
-        vignette: selectedOptions.vignette,
-        photo_10x15_count: selectedOptions.photo10x15,
-        photo_20x30_count: selectedOptions.photo20x30,
-        photo10x15Name: selectedOptions.photo10x15Name,
-        photo20x30Name: selectedOptions.photo20x30Name,
+        family_name: data.lastName,
+        photo_id: selectedPhoto.id,
+        photo_chronicle: data.photoInYearbook ? 1 : 0,
+        vignette: data.vignette ? 1 : 0,
+        photo_10x15_count: data.photo10x15,
+        photo_20x30_count: data.photo20x30,
+        photo10x15Name: selectedPhoto ? selectedPhoto.alt : data.photo10x15Name,
+        photo20x30Name: selectedPhoto ? selectedPhoto.alt : data.photo20x30Name,
+        album: data.photoInAlbum ? 1 : 0,
       };
       console.log('Payload to be sent to server:', payload);
 
       const res = await axios.post('/api/saveSelection', payload);
 
       if (res.status === 200) {
-        console.log('Selection saved successfully');
+        console.log('Выбор успешно сохранен');
         handleConfirmSelection();
       } else {
-        console.error('Failed to save selection');
+        console.error('Ошибка при сохранении выбора');
       }
     } catch (error) {
-      console.error('Error saving selection', error);
+      console.error('Ошибка при сохранении выбора', error);
     }
   };
 
@@ -94,17 +98,11 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
       <div className={styles.modalContent}>
         <button className={styles.closeButton} onClick={closeModal}>×</button>
         <h2>Выберите вашу фамилию</h2>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <label className={styles.formLabel}>
             Фамилия
             <select
-              value={selectedOptions.lastName}
-              onChange={(e) =>
-                setSelectedOptions((prev) => ({
-                  ...prev,
-                  lastName: e.target.value,
-                }))
-              }
+              {...register('lastName', { required: true })}
             >
               <option value="">Выберите вашу фамилию</option>
               {families.map((family) => (
@@ -113,82 +111,50 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 </option>
               ))}
             </select>
+            {errors.lastName && <span className="error">Фамилия обязательна</span>}
           </label>
           <label className={styles.checkboxLabel}>
             <input
               type="checkbox"
-              checked={selectedOptions.photoInYearbook}
-              onChange={(e) =>
-                setSelectedOptions((prev) => ({
-                  ...prev,
-                  photoInYearbook: e.target.checked,
-                }))
-              }
+              {...register('photoInYearbook')}
             />
             Фото в летопись
           </label>
           <label className={styles.checkboxLabel}>
             <input
               type="checkbox"
-              checked={selectedOptions.vignette}
-              onChange={(e) =>
-                setSelectedOptions((prev) => ({
-                  ...prev,
-                  vignette: e.target.checked,
-                }))
-              }
+              {...register('vignette')}
             />
             Виньетка (общая фотография)
           </label>
           <label className={styles.checkboxLabel}>
             <input
               type="checkbox"
-              checked={selectedOptions.additionalPhotos}
-              onChange={(e) =>
-                setSelectedOptions((prev) => ({
-                  ...prev,
-                  additionalPhotos: e.target.checked,
-                }))
-              }
+              {...register('additionalPhotos')}
             />
             Дополнительные фотографии
           </label>
-          {selectedOptions.additionalPhotos && (
+          <label className={styles.checkboxLabel}>
+            <input
+              type="checkbox"
+              {...register('photoInAlbum')}
+            />
+            Фото в альбом
+          </label>
+          {watch('additionalPhotos') && (
             <>
               <label className={styles.formLabel}>
                 Заказать фото 10x15
                 <input
                   type="number"
-                  value={selectedOptions.photo10x15}
-                  onChange={(e) =>
-                    setSelectedOptions((prev) => {
-                      const newOptions = {
-                        ...prev,
-                        photo10x15: Number(e.target.value),
-                        photo10x15Name: selectedPhoto ? selectedPhoto.alt : prev.photo10x15Name,
-                      };
-                      console.log('Updated selected options for 10x15:', newOptions);
-                      return newOptions;
-                    })
-                  }
+                  {...register('photo10x15', { valueAsNumber: true })}
                 />
               </label>
               <label className={styles.formLabel}>
                 Заказать фото 20x30
                 <input
                   type="number"
-                  value={selectedOptions.photo20x30}
-                  onChange={(e) =>
-                    setSelectedOptions((prev) => {
-                      const newOptions = {
-                        ...prev,
-                        photo20x30: Number(e.target.value),
-                        photo20x30Name: selectedPhoto ? selectedPhoto.alt : prev.photo20x30Name,
-                      };
-                      console.log('Updated selected options for 20x30:', newOptions);
-                      return newOptions;
-                    })
-                  }
+                  {...register('photo20x30', { valueAsNumber: true })}
                 />
               </label>
             </>

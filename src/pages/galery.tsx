@@ -4,28 +4,7 @@ import PhotoModal from '../components/PhotoModal';
 import LightboxGallery from '../components/LightboxGallery';
 import GalleryGrid from '../components/GalleryGrid';
 import YandexDiskService from '../services/YandexDiskService';
-
-type Photo = {
-  id: number;
-  src: string;
-  alt: string;
-};
-
-type User = {
-  class_name: string;
-  school_name: string;
-};
-
-type SelectedOptions = {
-  lastName: string;
-  photo10x15: number;
-  photo20x30: number;
-  photoInYearbook: boolean;
-  additionalPhotos: boolean;
-  vignette: boolean;
-  photo10x15Name: string;
-  photo20x30Name: string;
-};
+import { SelectedOptions, Photo, User } from '../types';
 
 const Gallery = () => {
   const [user, setUser] = useState<User>({ class_name: '', school_name: '' });
@@ -43,6 +22,7 @@ const Gallery = () => {
     vignette: false,
     photo10x15Name: '',
     photo20x30Name: '',
+    photoInAlbum: false,
   });
 
   useEffect(() => {
@@ -88,6 +68,7 @@ const Gallery = () => {
         vignette: false,
         photo10x15Name: '',
         photo20x30Name: '',
+        photoInAlbum: false,
       });
       console.log('Selection cleared');
     } else if (photo) {
@@ -119,6 +100,7 @@ const Gallery = () => {
         photo_20x30: selectedOptions.photo20x30,
         photo10x15Name: selectedOptions.photo10x15Name,
         photo20x30Name: selectedOptions.photo20x30Name,
+        album: selectedOptions.photoInAlbum ? 1 : 0,
       };
       console.log('Payload to be sent to server:', payload);
 

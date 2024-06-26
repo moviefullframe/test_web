@@ -1,18 +1,21 @@
 import { useRouter } from 'next/router';
 import { useState } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import axios from 'axios';
+
+interface IFormInput {
+  login: string;
+  password: string;
+}
 
 const Login = () => {
   const router = useRouter();
-  const [login, setLogin] = useState('');
-  const [password, setPassword] = useState('');
+  const { register, handleSubmit, formState: { errors } } = useForm<IFormInput>();
   const [error, setError] = useState('');
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    
+  const onSubmit: SubmitHandler<IFormInput> = async (data) => {
     try {
-      const res = await axios.post('/api/login', { login, password });
+      const res = await axios.post('/api/login', data);
       
       if (res.status === 200) {
         localStorage.setItem('user', JSON.stringify(res.data));
@@ -29,22 +32,22 @@ const Login = () => {
     <div className="container">
       <div className="form-container">
         <h2>Авторизация</h2>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit(onSubmit)}>
           <div className="input-field">
             <input
               type="text"
               placeholder="Логин"
-              value={login}
-              onChange={(e) => setLogin(e.target.value)}
+              {...register('login', { required: true })}
             />
+            {errors.login && <span className="error">Логин обязателен</span>}
           </div>
           <div className="input-field">
             <input
               type="password"
               placeholder="Пароль"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              {...register('password', { required: true })}
             />
+            {errors.password && <span className="error">Пароль обязателен</span>}
           </div>
           <button type="submit" className="btn-primary">LOGIN</button>
           {error && <p className="error">{error}</p>}

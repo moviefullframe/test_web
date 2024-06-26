@@ -15,6 +15,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     photo_20x30_count,
     photo10x15Name,
     photo20x30Name,
+    album,
   } = req.body;
 
   console.log('Received data:', req.body);
@@ -23,6 +24,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     console.error('Missing required fields');
     return res.status(400).json({ message: 'Required fields are missing' });
   }
+
+  // Убедимся, что значение album всегда либо 0, либо 1
+  const albumValue = album ? 1 : 0;
 
   try {
     const connection = await mysql.createConnection({
@@ -43,25 +47,29 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     const familyId = familyIdResult[0].id;
 
-    // Register file names in `file_names` table and get their IDs
     const insertFileNameQuery = `
       INSERT INTO file_names (file_name) VALUES (?),(?)
       ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)
     `;
     const [fileNamesResult] = await connection.execute<ResultSetHeader>(insertFileNameQuery, [photo10x15Name, photo20x30Name]);
     const file10x15Id = fileNamesResult.insertId;
-    const file20x30Id = fileNamesResult.insertId + 1; // Assumes IDs are sequential
+    const file20x30Id = fileNamesResult.insertId + 1;
 
     const insertQuery = `
-      INSERT INTO family_photos (family_id, photo_id, photo_chronicle, vignette, photo_size, photo_count, file_name_id)
+      INSERT INTO family_photos (family_id, photo_id, photo_chronicle, vignette, photo_size, photo_count, file_name_id, album)
       VALUES 
-      (?, ?, ?, ?, '10x15', ?, ?), 
-      (?, ?, ?, ?, '20x30', ?, ?)
+      (?, ?, ?, ?, '10x15', ?, ?, ?), 
+      (?, ?, ?, ?, '20x30', ?, ?, ?)
     `;
 
+    console.log('Insert parameters:', [
+      familyId, file10x15Id, photo_chronicle, vignette, photo_10x15_count, file10x15Id, albumValue,
+      familyId, file20x30Id, photo_chronicle, vignette, photo_20x30_count, file20x30Id, albumValue
+    ]);
+
     await connection.execute(insertQuery, [
-      familyId, file10x15Id, photo_chronicle, vignette, photo_10x15_count, file10x15Id,
-      familyId, file20x30Id, photo_chronicle, vignette, photo_20x30_count, file20x30Id
+      familyId, file10x15Id, photo_chronicle, vignette, photo_10x15_count, file10x15Id, albumValue,
+      familyId, file20x30Id, photo_chronicle, vignette, photo_20x30_count, file20x30Id, albumValue
     ]);
 
     connection.end();
