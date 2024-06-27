@@ -5,6 +5,7 @@ import LightboxGallery from '../components/LightboxGallery';
 import GalleryGrid from '../components/GalleryGrid';
 import YandexDiskService from '../services/YandexDiskService';
 import { SelectedOptions, Photo, User } from '../types';
+import { resetPhotoSelection } from '../pages/api/resetPhotoSelection';
 
 const Gallery = () => {
   const [user, setUser] = useState<User>({ class_name: '', school_name: '' });
@@ -58,18 +59,7 @@ const Gallery = () => {
   const handleSelectPhoto = (photo: Photo | null) => {
     console.log('Photo selected:', photo);
     if (selectedPhoto?.id === photo?.id) {
-      setSelectedPhoto(null);
-      setSelectedOptions({
-        lastName: '',
-        photo10x15: 0,
-        photo20x30: 0,
-        photoInYearbook: false,
-        additionalPhotos: false,
-        vignette: false,
-        photo10x15Name: '',
-        photo20x30Name: '',
-        photoInAlbum: false,
-      });
+      resetPhotoSelection(setSelectedPhoto, setSelectedOptions);
       console.log('Selection cleared');
     } else if (photo) {
       setSelectedPhoto(photo);
@@ -145,6 +135,7 @@ const Gallery = () => {
           schoolName={user.school_name}
           className={user.class_name}
           selectedPhoto={selectedPhoto}
+          setSelectedPhoto={setSelectedPhoto}
           selectedOptions={selectedOptions}
           handleSelectPhoto={handleSelectPhoto}
           openLightbox={openLightbox}

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import mysql from 'mysql2/promise';
+import { Family, Class } from '../../types';  // Исправленный путь
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== 'GET') {
@@ -8,6 +9,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   const { classId } = req.query;
+
+  if (!classId) {
+    return res.status(400).json({ message: 'Class ID is required' });
+  }
 
   try {
     console.log(`Connecting to database with classId: ${classId}`);
@@ -19,16 +24,45 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       port: 3306,
     });
 
-    const [rows] = await connection.execute(
-      'SELECT id, family_name FROM families WHERE class_id = (SELECT id FROM classes WHERE class_name = ?)',
+    // Получаем данные класса и школы
+    const [classRows] = await connection.execute<any[]>(
+      'SELECT id, school_name FROM classes WHERE class_name = ?',
       [classId]
     );
 
-    connection.end();
-    console.log(`Families fetched from database: ${JSON.stringify(rows)}`);
+    if (!Array.isArray(classRows) || classRows.length === 0) {
+      console.log('Class not found');
+      return res.status(404).json({ message: 'Class not found' });
+    }
 
-    if (Array.isArray(rows) && rows.length > 0) {
-      return res.status(200).json(rows);
+    const classData: Class = classRows[0];
+
+    // Получаем данные семей
+    const [familyRows] = await connection.execute<any[]>(
+      'SELECT id, family_name FROM families WHERE class_id = ?',
+      [classData.id]
+    );
+
+    connection.end();
+    console.log(`Families fetched from database: ${JSON.stringify(familyRows)}`);
+
+    if (Array.isArray(familyRows) && familyRows.length > 0) {
+      const families: Family[] = familyRows.map(row => ({
+        id: row.id,
+        class_id: row.class_id,
+        family_name: row.family_name,
+        photo_chronicle: row.photo_chronicle,
+        vignette: row.vignette,
+        photo_10x15: row.photo_10x15,
+        photo_20x30: row.photo_20x30,
+        file_name_id: row.file_name_id
+      }));
+
+      return res.status(200).json({
+        classId: classData.id,
+        schoolName: classData.school_name,
+        families: families,
+      });
     } else {
       console.log('Families not found');
       return res.status(404).json({ message: 'Families not found' });

@@ -3,12 +3,14 @@ import axios from 'axios';
 import YandexDiskService from '../services/YandexDiskService';
 import styles from '../app/Gallery.module.css';
 import { SelectedOptions, Photo } from '../types';
+import { resetPhotoSelection } from '../pages/api/resetPhotoSelection';
 
 type GalleryGridProps = {
   photos: Photo[];
   schoolName: string;
   className: string;
   selectedPhoto: Photo | null;
+  setSelectedPhoto: React.Dispatch<React.SetStateAction<Photo | null>>;
   selectedOptions: SelectedOptions;
   handleSelectPhoto: (photo: Photo | null) => void;
   openLightbox: (index: number) => void;
@@ -20,6 +22,7 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
   schoolName,
   className,
   selectedPhoto,
+  setSelectedPhoto,
   selectedOptions,
   handleSelectPhoto,
   openLightbox,
@@ -58,18 +61,7 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
 
       if (res.status === 200) {
         console.log('Selection deleted successfully');
-        setSelectedOptions({
-          lastName: '',
-          photo10x15: 0,
-          photo20x30: 0,
-          photoInYearbook: false,
-          additionalPhotos: false,
-          vignette: false,
-          photo10x15Name: '',
-          photo20x30Name: '',
-          photoInAlbum: false,
-        });
-        handleSelectPhoto(null);
+        resetPhotoSelection(setSelectedPhoto, setSelectedOptions);
       } else {
         console.error('Failed to delete selection');
       }

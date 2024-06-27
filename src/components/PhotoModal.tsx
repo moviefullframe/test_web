@@ -42,8 +42,12 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     const fetchFamilies = async () => {
       try {
         const res = await axios.get(`/api/families`, { params: { classId: className } });
-        setFamilies(res.data);
         console.log('Families fetched from API:', res.data);
+        if (res.data && Array.isArray(res.data.families)) {
+          setFamilies(res.data.families);
+        } else {
+          console.error('Unexpected data format:', res.data);
+        }
       } catch (error) {
         console.error('Failed to fetch families', error);
       }
