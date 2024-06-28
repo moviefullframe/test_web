@@ -47,6 +47,25 @@ const Gallery = () => {
     fetchPhotos();
   }, [user]);
 
+  useEffect(() => {
+    const fetchUserSelection = async () => {
+      if (user.class_name) {
+        const res = await fetch(`/api/getUserSelection?user_id=${user.class_name}`);
+        if (res.ok) {
+          const data = await res.json();
+          const { selectedPhotos, selectedOptionsMap } = data;
+          setSelectedPhotos(photos.filter(photo => selectedPhotos.includes(photo.id)));
+          setSelectedOptionsMap(selectedOptionsMap);
+          console.log('User selection fetched:', data);
+        } else {
+          console.error('Failed to fetch user selection');
+        }
+      }
+    };
+
+    fetchUserSelection();
+  }, [user, photos]);
+
   const handleSelectPhoto = (photo: Photo) => {
     console.log('Photo selected:', photo);
     setSelectedPhoto(photo);
@@ -102,14 +121,14 @@ const Gallery = () => {
     }
 
     try {
-      const res = await fetch('/api/deleteSelection', {
+      const res = await fetch('/api/deleteUserSelection', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          class_id: user.class_name,
-          family_name: selectedOptionsMap[photo.id].lastName,
+          user_id: user.class_name,
+          photo_id: photo.id,
         }),
       });
 
@@ -122,13 +141,42 @@ const Gallery = () => {
           return newMap;
         });
       } else {
-        const errorData = await res.json();
-        console.error('Failed to delete selection:', errorData.message);
+        console.error('Failed to delete selection');
       }
     } catch (error) {
       console.error('Error deleting selection', error);
     }
   };
+
+  useEffect(() => {
+    const saveUserSelection = async () => {
+      try {
+        const res = await fetch('/api/saveUserSelection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: user.class_name,
+            selectedPhotos,
+            selectedOptionsMap,
+          }),
+        });
+
+        if (res.ok) {
+          console.log('User selection saved successfully.');
+        } else {
+          console.error('Failed to save user selection');
+        }
+      } catch (error) {
+        console.error('Error saving user selection', error);
+      }
+    };
+
+    if (selectedPhotos.length > 0) {
+      saveUserSelection();
+    }
+  }, [selectedPhotos, selectedOptionsMap, user.class_name]);
 
   const closeModal = () => {
     console.log('Closing modal');
