@@ -5,6 +5,7 @@ export const resetPhotoSelection = (
   setSelectedPhoto: Dispatch<SetStateAction<Photo | null>>,
   setSelectedOptions: Dispatch<SetStateAction<SelectedOptions>>
 ) => {
+  console.log('Resetting photo selection');
   setSelectedPhoto(null);
   setSelectedOptions({
     lastName: '',

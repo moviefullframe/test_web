@@ -9,22 +9,13 @@ import { resetPhotoSelection } from '../pages/api/resetPhotoSelection';
 
 const Gallery = () => {
   const [user, setUser] = useState<User>({ class_name: '', school_name: '' });
+  const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const [initialIndex, setInitialIndex] = useState(0);
   const [photos, setPhotos] = useState<Photo[]>([]);
-  const [selectedOptions, setSelectedOptions] = useState<SelectedOptions>({
-    lastName: '',
-    photo10x15: 0,
-    photo20x30: 0,
-    photoInYearbook: false,
-    additionalPhotos: false,
-    vignette: false,
-    photo10x15Name: '',
-    photo20x30Name: '',
-    photoInAlbum: false,
-  });
+  const [selectedOptionsMap, setSelectedOptionsMap] = useState<{ [key: number]: SelectedOptions }>({});
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -56,30 +47,24 @@ const Gallery = () => {
     fetchPhotos();
   }, [user]);
 
-  const handleSelectPhoto = (photo: Photo | null) => {
+  const handleSelectPhoto = (photo: Photo) => {
     console.log('Photo selected:', photo);
-    if (selectedPhoto?.id === photo?.id) {
-      resetPhotoSelection(setSelectedPhoto, setSelectedOptions);
-      console.log('Selection cleared');
-    } else if (photo) {
-      setSelectedPhoto(photo);
-      setInitialIndex(photo.id - 1);
-      setShowModal(true);
-      setSelectedOptions((prev) => {
-        const newOptions = {
-          ...prev,
-          photo10x15Name: photo.alt.includes('10x15') ? photo.alt : prev.photo10x15Name,
-          photo20x30Name: photo.alt.includes('20x30') ? photo.alt : prev.photo20x30Name,
-        };
-        console.log('Selected options updated:', newOptions);
-        return newOptions;
-      });
-    }
+    setSelectedPhoto(photo);
+    setSelectedPhotos(prevSelectedPhotos => {
+      const alreadySelected = prevSelectedPhotos.some(p => p.id === photo.id);
+      if (alreadySelected) {
+        return prevSelectedPhotos.filter(p => p.id !== photo.id);
+      } else {
+        return [...prevSelectedPhotos, photo];
+      }
+    });
+    setShowModal(true);
   };
 
   const handleConfirmSelection = async () => {
     setShowModal(false);
     if (selectedPhoto) {
+      const selectedOptions = selectedOptionsMap[selectedPhoto.id];
       const payload = {
         class_id: user.class_name,
         family_name: selectedOptions.lastName,
@@ -110,9 +95,44 @@ const Gallery = () => {
     }
   };
 
+  const handleDeleteSelection = async (photo: Photo) => {
+    if (!selectedOptionsMap[photo.id]?.lastName) {
+      alert('Пожалуйста, выберите фамилию.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/deleteSelection', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          class_id: user.class_name,
+          family_name: selectedOptionsMap[photo.id].lastName,
+        }),
+      });
+
+      if (res.ok) {
+        console.log('Selection deleted successfully');
+        setSelectedPhotos(prevSelectedPhotos => prevSelectedPhotos.filter(p => p.id !== photo.id));
+        setSelectedOptionsMap(prev => {
+          const newMap = { ...prev };
+          delete newMap[photo.id];
+          return newMap;
+        });
+      } else {
+        const errorData = await res.json();
+        console.error('Failed to delete selection:', errorData.message);
+      }
+    } catch (error) {
+      console.error('Error deleting selection', error);
+    }
+  };
+
   const closeModal = () => {
+    console.log('Closing modal');
     setShowModal(false);
-    setSelectedPhoto(null);
   };
 
   const openLightbox = (index: number) => {
@@ -124,6 +144,18 @@ const Gallery = () => {
     setShowLightbox(false);
   };
 
+  const handleSelectedOptionsChange = (photoId: number, options: SelectedOptions) => {
+    setSelectedOptionsMap(prev => ({
+      ...prev,
+      [photoId]: options,
+    }));
+  };
+
+  useEffect(() => {
+    console.log('Selected photos:', selectedPhotos);
+    console.log('Selected options map:', selectedOptionsMap);
+  }, [selectedPhotos, selectedOptionsMap]);
+
   return (
     <div className={styles.galleryContainer}>
       <h1>Добро пожаловать на страницу галереи</h1>
@@ -134,12 +166,13 @@ const Gallery = () => {
           photos={photos}
           schoolName={user.school_name}
           className={user.class_name}
-          selectedPhoto={selectedPhoto}
-          setSelectedPhoto={setSelectedPhoto}
-          selectedOptions={selectedOptions}
+          selectedPhotos={selectedPhotos}
+          setSelectedPhotos={setSelectedPhotos}
+          selectedOptionsMap={selectedOptionsMap}
           handleSelectPhoto={handleSelectPhoto}
+          handleDeleteSelection={handleDeleteSelection}
           openLightbox={openLightbox}
-          setSelectedOptions={setSelectedOptions}
+          onSelectedOptionsChange={handleSelectedOptionsChange}
         />
       ) : (
         <p>Загрузка фотографий...</p>
@@ -151,11 +184,21 @@ const Gallery = () => {
           onClose={closeLightbox}
         />
       )}
-      {showModal && (
+      {showModal && selectedPhoto && (
         <PhotoModal
           className={user.class_name}
-          selectedOptions={selectedOptions}
-          setSelectedOptions={setSelectedOptions}
+          selectedOptions={selectedOptionsMap[selectedPhoto.id] || {
+            lastName: '',
+            photo10x15: 0,
+            photo20x30: 0,
+            photoInYearbook: false,
+            additionalPhotos: false,
+            vignette: false,
+            photo10x15Name: '',
+            photo20x30Name: '',
+            photoInAlbum: false,
+          }}
+          onSelectedOptionsChange={(options: SelectedOptions) => handleSelectedOptionsChange(selectedPhoto.id, options)}
           handleConfirmSelection={handleConfirmSelection}
           closeModal={closeModal}
           selectedPhoto={selectedPhoto}

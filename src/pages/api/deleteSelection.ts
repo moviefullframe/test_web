@@ -59,6 +59,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       } else {
         console.log('[DELETE] No photo IDs found for family_id:', familyId);
       }
+    } else {
+      console.log('[DELETE] No photos found for family_id:', familyId);
     }
 
     connection.end();

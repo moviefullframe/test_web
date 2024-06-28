@@ -7,7 +7,7 @@ import { SelectedOptions, Family, Photo } from '../types';
 type PhotoModalProps = {
   className: string;
   selectedOptions: SelectedOptions;
-  setSelectedOptions: React.Dispatch<React.SetStateAction<SelectedOptions>>;
+  onSelectedOptionsChange: (options: SelectedOptions) => void;
   handleConfirmSelection: () => void;
   closeModal: () => void;
   selectedPhoto: Photo | null;
@@ -28,7 +28,7 @@ const defaultSelectedOptions: SelectedOptions = {
 const PhotoModal: React.FC<PhotoModalProps> = ({
   className,
   selectedOptions,
-  setSelectedOptions,
+  onSelectedOptionsChange,
   handleConfirmSelection,
   closeModal,
   selectedPhoto
@@ -57,12 +57,12 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
   }, [className]);
 
   useEffect(() => {
-    const subscription = watch((value) => setSelectedOptions({
+    const subscription = watch((value) => onSelectedOptionsChange({
       ...defaultSelectedOptions,
       ...value,
     }));
     return () => subscription.unsubscribe();
-  }, [watch, setSelectedOptions]);
+  }, [watch, onSelectedOptionsChange]);
 
   const onSubmit: SubmitHandler<SelectedOptions> = async (data) => {
     if (!selectedPhoto) {
