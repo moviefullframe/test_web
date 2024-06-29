@@ -42,6 +42,8 @@ const Orders: React.FC = () => {
                 src: photoItem.file,
                 alt: orderItem.file_name,
                 additionalPhotos: [],
+                photoSize: photoItem.photoSize || 'defaultSize', // добавлено
+                photoType: photoItem.photoType || 'defaultType', // добавлено
               });
             }
           }
