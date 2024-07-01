@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 import styles from '../app/Gallery.module.css';
 import PhotoModal from '../components/PhotoModal';
 import LightboxGallery from '../components/LightboxGallery';
 import GalleryGrid from '../components/GalleryGrid';
 import YandexDiskService from '../services/YandexDiskService';
 import { SelectedOptions, Photo, User } from '../types';
-import { resetPhotoSelection } from '../pages/api/resetPhotoSelection';
-import axios from "axios";
 
 const defaultOptions = {
   lastName: '',
@@ -18,10 +17,10 @@ const defaultOptions = {
   photo10x15Name: '',
   photo20x30Name: '',
   photoInAlbum: false,
-}
+};
 
 const Gallery = () => {
-  const [user, setUser] = useState<User>({ class_name: '', school_name: '' });
+  const [user, setUser] = useState<User>({ class_name: '', school_name: '', class_id: 0 });
   const [savedPhotos, setSavedPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [showLightbox, setShowLightbox] = useState(false);
@@ -32,123 +31,123 @@ const Gallery = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      console.log('User loaded from localStorage:', storedUser);
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      console.log('User loaded from localStorage:', parsedUser);
+
+      // Fetch class_id based on class_name
+      const fetchClassId = async () => {
+        try {
+          const res = await axios.get(`/api/getClassId?class_name=${parsedUser.class_name}`);
+          if (res.status === 200) {
+            const classId = res.data.class_id;
+            setUser(prev => ({ ...prev, class_id: classId }));
+            console.log('Fetched class_id:', classId);
+          } else {
+            console.error('Failed to fetch class_id');
+          }
+        } catch (error) {
+          console.error('Error fetching class_id:', error);
+        }
+      };
+
+      fetchClassId();
     }
   }, []);
 
-  // get photos by class
   useEffect(() => {
     const fetchPhotos = async () => {
       if (user.school_name && user.class_name) {
         const folderPath = `schools/${user.school_name}/${user.class_name}`;
         console.log('Fetching photos from Yandex Disk with folderPath:', folderPath);
-        const items = await YandexDiskService.getFolderContents(folderPath);
-        console.log('Yandex Disk items fetched:', items);
-        const fetchedPhotos = items
-          .filter((item: any) => item.type === 'file')
-          .map((item: any, index: number) => ({
-            id: index + 1,
-            src: item.file,
-            alt: item.name,
-          }));
-        setPhotos(fetchedPhotos);
-        console.log('Photos fetched from Yandex Disk:', fetchedPhotos);
+        try {
+          const items = await YandexDiskService.getFolderContents(folderPath);
+          console.log('Yandex Disk items fetched:', items);
+          const fetchedPhotos = items
+            .filter((item: any) => item.type === 'file')
+            .map((item: any, index: number) => ({
+              id: index + 1,
+              src: item.file,
+              alt: item.name,
+            }));
+          setPhotos(fetchedPhotos);
+          console.log('Photos fetched from Yandex Disk:', fetchedPhotos);
+        } catch (error) {
+          console.error('Error fetching photos from Yandex Disk:', error);
+        }
       }
     };
 
     fetchPhotos();
-  }, [user]);
+  }, [user.school_name, user.class_name]);
 
   useEffect(() => {
-    // const fetchUserSelection = async () => {
-    //   if (user.class_name) {
-    //     const res = await fetch(`/api/getUserSelection?user_id=${user.class_name}`);
-    //     if (res.ok) {
-    //       const data = await res.json();
-    //       const { selectedPhotos, selectedOptionsMap } = data;
-    //       setSelectedPhotos(photos.filter(photo => selectedPhotos.includes(photo.id)));
-    //       setSelectedOptionsMap(selectedOptionsMap);
-    //       console.log('User selection fetched:', data);
-    //     } else {
-    //       console.error('Failed to fetch user selection');
-    //     }
-    //   }
-    // };
-    //
-    // fetchUserSelection();
-  }, [user, photos]);
+    const fetchSavedPhotos = async () => {
+      if (user.class_id) {
+        try {
+          const res = await axios.get(`/api/family_photos?class_id=${user.class_id}`);
+          if (res.status === 200) {
+            const data = res.data;
+            console.log('Data fetched from database:', data);
+
+            const savedPhotos = data.map((item: any) => ({
+              id: item.photo_id,
+              src: item.file_name,
+              alt: item.file_name,
+            }));
+            const selectedOptionsMap = data.reduce((acc: any, item: any) => {
+              acc[item.photo_id] = {
+                lastName: item.family_name,
+                photo10x15: item.photo_size === '10x15' ? item.photo_count : 0,
+                photo20x30: item.photo_size === '20x30' ? item.photo_count : 0,
+                photoInYearbook: item.photo_chronicle,
+                vignette: item.vignette,
+                photo10x15Name: item.photo_size === '10x15' ? item.file_name : '',
+                photo20x30Name: item.photo_size === '20x30' ? item.file_name : '',
+                photoInAlbum: item.album,
+              };
+              return acc;
+            }, {});
+            setSavedPhotos(savedPhotos);
+            setSelectedOptionsMap(selectedOptionsMap);
+            console.log('Saved photos:', savedPhotos);
+            console.log('Selected options map:', selectedOptionsMap);
+
+            localStorage.setItem('savedPhotos', JSON.stringify(savedPhotos));
+            localStorage.setItem('selectedOptionsMap', JSON.stringify(selectedOptionsMap));
+          } else {
+            console.error('Failed to fetch saved photos');
+          }
+        } catch (error) {
+          console.error('Error fetching saved photos:', error);
+        }
+      }
+    };
+
+    fetchSavedPhotos();
+  }, [user.class_id]);
 
   const handleSelectPhoto = (photo: Photo) => {
     console.log('Photo selected:', photo);
     setSelectedPhoto(photo);
-    // setSavedPhotos(prevSelectedPhotos => {
-    //   const alreadySelected = prevSelectedPhotos.some(p => p.id === photo.id);
-    //   if (alreadySelected) {
-    //     return prevSelectedPhotos.filter(p => p.id !== photo.id);
-    //   } else {
-    //     return [...prevSelectedPhotos, photo];
-    //   }
-    // });
   };
 
   const handleConfirmSelection = async (options: SelectedOptions) => {
     if (!selectedPhoto) {
       return;
     }
-      const data = options;
-    //
-    //   if (!selectedOptions.lastName) {
-    //     alert("Фамилия не выбрана");
-    //     return;
-    //   }
-    //
-    //   const payload = {
-    //     class_id: user.class_name,
-    //     family_name: selectedOptions.lastName,
-    //     photo_id: selectedPhoto.id,
-    //     photo_chronicle: selectedOptions.photoInYearbook ? 1 : 0,
-    //     vignette: selectedOptions.vignette ? 1 : 0,
-    //     photo_10x15: selectedOptions.photo10x15,
-    //     photo_20x30: selectedOptions.photo20x30,
-    //     photo10x15Name: selectedPhoto ? selectedPhoto.alt : options.photo10x15Name,
-    //     photo20x30Name: selectedPhoto ? selectedPhoto.alt : options.photo20x30Name,
-    //     album: selectedOptions.photoInAlbum ? 1 : 0,
-    //   };
-    //   console.log('Payload to be sent to server:', payload);
-    //
-    //   const res = await fetch('/api/saveSelection', {
-    //     method: 'POST',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify(payload),
-    //   });
-    //
-    //   if (!res.ok) {
-    //     console.error('Ошибка при сохранении выбора');
-    //   } else {
-    //     console.log('Selection saved successfully.');
-    //   }
-    // }
-    // setSelectedPhoto(null);
-    //
-    // if (!selectedPhoto) {
-    //   alert('Пожалуйста, выберите фото.');
-    //   return;
-    // }
     try {
       const payload = {
-        class_id: user.class_name,
-        family_name: data.lastName,
+        class_id: user.class_id,
+        family_name: options.lastName,
         photo_id: selectedPhoto.id,
-        photo_chronicle: data.photoInYearbook ? 1 : 0,
-        vignette: data.vignette ? 1 : 0,
-        photo_10x15_count: data.photo10x15,
-        photo_20x30_count: data.photo20x30,
-        photo10x15Name: selectedPhoto ? selectedPhoto.alt : data.photo10x15Name,
-        photo20x30Name: selectedPhoto ? selectedPhoto.alt : data.photo20x30Name,
-        album: data.photoInAlbum ? 1 : 0,
+        photo_chronicle: options.photoInYearbook ? 1 : 0,
+        vignette: options.vignette ? 1 : 0,
+        photo_10x15_count: options.photo10x15,
+        photo_20x30_count: options.photo20x30,
+        photo10x15Name: selectedPhoto.alt,
+        photo20x30Name: selectedPhoto.alt,
+        album: options.photoInAlbum ? 1 : 0,
       };
       console.log('Payload to be sent to server:', payload);
 
@@ -158,9 +157,9 @@ const Gallery = () => {
         console.log('Выбор успешно сохранен');
         setSelectedOptionsMap(prev => ({
           ...prev,
-          [selectedPhoto.id]: options
-        }))
-        setSavedPhotos(prev => [...prev, selectedPhoto])
+          [selectedPhoto.id]: options,
+        }));
+        setSavedPhotos(prev => [...prev, selectedPhoto]);
       } else {
         console.error('Ошибка при сохранении выбора');
       }
@@ -171,68 +170,60 @@ const Gallery = () => {
   };
 
   const handleDeleteSelection = async (photo: Photo) => {
-    if (!selectedOptionsMap[photo.id]?.lastName) {
+    const options = selectedOptionsMap[photo.id];
+    if (!options || !options.lastName) {
       alert('Пожалуйста, выберите фамилию.');
       return;
     }
 
     try {
-      const res = await fetch('/api/deleteUserSelection', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          user_id: user.class_name,
+      const res = await axios.delete('/api/deleteUserSelection', {
+        data: {
+          class_id: user.class_id,
+          family_name: options.lastName,
           photo_id: photo.id,
-        }),
+        },
       });
 
-      if (res.ok) {
+      if (res.status === 200) {
         console.log('Selection deleted successfully');
-        // setSavedPhotos(prevSelectedPhotos => prevSelectedPhotos.filter(p => p.id !== photo.id));
         setSelectedOptionsMap(prev => {
           const newMap = { ...prev };
           delete newMap[photo.id];
           return newMap;
         });
+        setSavedPhotos(prev => prev.filter(p => p.id !== photo.id));
       } else {
         console.error('Failed to delete selection');
       }
     } catch (error) {
-      console.error('Error deleting selection', error);
+      console.error('Error deleting selection:', error);
     }
   };
 
   useEffect(() => {
     const saveUserSelection = async () => {
-      try {
-        const res = await fetch('/api/saveUserSelection', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            user_id: user.class_name,
+      if (savedPhotos.length > 0 && Object.keys(selectedOptionsMap).length > 0) {
+        try {
+          const res = await axios.post('/api/saveUserSelection', {
+            class_id: user.class_id,
             selectedPhotos: savedPhotos,
             selectedOptionsMap,
-          }),
-        });
+          });
 
-        if (res.ok) {
-          console.log('User selection saved successfully.');
-        } else {
-          console.error('Failed to save user selection');
+          if (res.status === 200) {
+            console.log('User selection saved successfully.');
+          } else {
+            console.error('Failed to save user selection');
+          }
+        } catch (error) {
+          console.error('Error saving user selection:', error);
         }
-      } catch (error) {
-        console.error('Error saving user selection', error);
       }
     };
 
-    if (savedPhotos.length > 0) {
-      saveUserSelection();
-    }
-  }, [savedPhotos, selectedOptionsMap, user.class_name]);
+    saveUserSelection();
+  }, [savedPhotos, selectedOptionsMap, user.class_id]);
 
   const closeModal = () => {
     console.log('Closing modal');
@@ -258,8 +249,9 @@ const Gallery = () => {
   useEffect(() => {
     console.log('Selected photos:', savedPhotos);
     console.log('Selected options map:', selectedOptionsMap);
+    console.log('LocalStorage savedPhotos:', localStorage.getItem('savedPhotos'));
+    console.log('LocalStorage selectedOptionsMap:', localStorage.getItem('selectedOptionsMap'));
   }, [savedPhotos, selectedOptionsMap]);
-
 
   return (
     <div className={styles.galleryContainer}>
@@ -269,8 +261,6 @@ const Gallery = () => {
       {photos.length > 0 ? (
         <GalleryGrid
           photos={photos}
-          // schoolName={user.school_name}
-          // className={user.class_name}
           savedPhotos={savedPhotos}
           setSelectedPhotos={setSavedPhotos}
           selectedOptionsMap={selectedOptionsMap}
@@ -292,7 +282,6 @@ const Gallery = () => {
         <PhotoModal
           className={user.class_name}
           selectedOptions={selectedOptionsMap[selectedPhoto.id] || defaultOptions}
-          // onSelectedOptionsChange={(options: SelectedOptions) => handleSelectedOptionsChange(selectedPhoto.id, options)}
           handleConfirmSelection={handleConfirmSelection}
           closeModal={closeModal}
           selectedPhoto={selectedPhoto}

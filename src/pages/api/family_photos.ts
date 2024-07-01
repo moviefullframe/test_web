@@ -6,10 +6,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(405).json({ message: 'Only GET requests allowed' });
   }
 
-  const { familyId } = req.query;
+  const { class_id } = req.query;
 
-  if (!familyId) {
-    return res.status(400).json({ message: 'Family ID is required' });
+  if (!class_id) {
+    return res.status(400).json({ message: 'Class ID is required' });
   }
 
   try {
@@ -22,11 +22,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     const [photoRows] = await connection.execute(
-      `SELECT family_photos.photo_id, file_names.file_name
+      `SELECT family_photos.*, file_names.file_name, families.family_name 
        FROM family_photos
        JOIN file_names ON family_photos.photo_id = file_names.id
-       WHERE family_photos.family_id = ?`,
-      [familyId]
+       JOIN families ON family_photos.family_id = families.id
+       WHERE family_photos.class_id = ?`,
+      [class_id]
     );
 
     await connection.end();

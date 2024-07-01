@@ -6,10 +6,11 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(405).json({ message: 'Only DELETE requests allowed' });
   }
 
-  const { class_id, family_name } = req.body;
+  const { class_name, family_name, photo_id } = req.body; // Добавляем photo_id для удаления конкретной фотографии
 
-  if (!class_id || !family_name) {
-    return res.status(400).json({ message: 'Class ID and family name are required' });
+  if (!class_name || !family_name || !photo_id) {
+    console.log('Missing parameters:', { class_name, family_name, photo_id });
+    return res.status(400).json({ message: 'Class name, family name, and photo ID are required' });
   }
 
   console.log('[DELETE] Received request:', req.body);
@@ -25,12 +26,24 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     console.log('[DELETE] Connected to database');
 
+    // Получаем class_id по class_name
+    const classIdQuery = 'SELECT id FROM classes WHERE class_name = ?';
+    console.log('Executing query:', classIdQuery, [class_name]);
+    const [classIdResult] = await connection.execute<RowDataPacket[]>(classIdQuery, [class_name]);
+
+    if (classIdResult.length === 0) {
+      console.log('Class not found for class_name:', class_name);
+      connection.end();
+      return res.status(404).json({ message: 'Class not found' });
+    }
+
+    const classId = classIdResult[0].id;
+    console.log('Class ID:', classId);
+
     const familyIdQuery = `
-      SELECT f.id FROM families f
-      JOIN classes c ON f.class_id = c.id
-      WHERE f.family_name = ? AND c.class_name = ?
+      SELECT id FROM families WHERE family_name = ? AND class_id = ?
     `;
-    const [familyIdResult] = await connection.execute<RowDataPacket[]>(familyIdQuery, [family_name, class_id]);
+    const [familyIdResult] = await connection.execute<RowDataPacket[]>(familyIdQuery, [family_name, classId]);
 
     console.log('[DELETE] familyIdQuery result:', familyIdResult);
 
@@ -40,28 +53,31 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     }
 
     const familyId = familyIdResult[0].id;
+    console.log('Family ID:', familyId);
 
-    const photoIdsQuery = 'SELECT photo_id FROM family_photos WHERE family_id = ?';
-    const [photoIdsResult] = await connection.execute<RowDataPacket[]>(photoIdsQuery, [familyId]);
+    const photoIdsQuery = 'SELECT photo_id FROM family_photos WHERE family_id = ? AND photo_id = ?';
+    const [photoIdsResult] = await connection.execute<RowDataPacket[]>(photoIdsQuery, [familyId, photo_id]);
 
-    const photoIds = photoIdsResult.map((row: any) => row.photo_id);
-    console.log('[DELETE] Photo IDs to be deleted:', photoIds);
+    console.log('[DELETE] photoIdsQuery result:', photoIdsResult);
 
-    if (photoIds.length > 0) {
-      const deleteFamilyPhotosQuery = 'DELETE FROM family_photos WHERE family_id = ?';
-      const [deleteFamilyPhotosResult] = await connection.execute(deleteFamilyPhotosQuery, [familyId]);
-      console.log('[DELETE] Deleted family photos result:', deleteFamilyPhotosResult);
-
-      if (photoIds.length > 0) {
-        const deleteFileNamesQuery = `DELETE FROM file_names WHERE id IN (${photoIds.join(',')})`;
-        const [deleteFileNamesResult] = await connection.execute(deleteFileNamesQuery);
-        console.log('[DELETE] Deleted file names result:', deleteFileNamesResult);
-      } else {
-        console.log('[DELETE] No photo IDs found for family_id:', familyId);
-      }
-    } else {
-      console.log('[DELETE] No photos found for family_id:', familyId);
+    if (photoIdsResult.length === 0) {
+      console.log('Photo not found for the specified family:', { familyId, photo_id });
+      connection.end();
+      return res.status(404).json({ message: 'Photo not found for the specified family' });
     }
+
+    const photoId = photoIdsResult[0].photo_id;
+    console.log('[DELETE] Photo ID to be deleted:', photoId);
+
+    const deleteFamilyPhotosQuery = 'DELETE FROM family_photos WHERE family_id = ? AND photo_id = ?';
+    console.log('Executing query:', deleteFamilyPhotosQuery, [familyId, photoId]);
+    const [deleteFamilyPhotosResult] = await connection.execute(deleteFamilyPhotosQuery, [familyId, photoId]);
+    console.log('[DELETE] Deleted from family_photos:', deleteFamilyPhotosResult);
+
+    const deleteFileNamesQuery = 'DELETE FROM file_names WHERE id = ?';
+    console.log('Executing query:', deleteFileNamesQuery, [photoId]);
+    const [deleteFileNamesResult] = await connection.execute(deleteFileNamesQuery, [photoId]);
+    console.log('[DELETE] Deleted from file_names:', deleteFileNamesResult);
 
     connection.end();
     console.log('[DELETE] Connection closed');

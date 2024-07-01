@@ -39,6 +39,7 @@ export type Order = {
 export type User = {
   class_name: string;
   school_name: string;
+  class_id: number;
 };
 
 export type Class = {
@@ -59,6 +60,7 @@ export type FamilyPhoto = {
   vignette: boolean;
   album: boolean;
   file_name_id: number | null;
+  class_id: number;
 };
 
 export type FileName = {

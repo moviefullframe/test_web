@@ -2,14 +2,14 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import mysql from 'mysql2/promise';
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ message: 'Only GET requests allowed' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Only POST requests allowed' });
   }
 
-  const { user_id } = req.query;
+  const { user_id, selectedPhotos, selectedOptionsMap } = req.body;
 
-  if (!user_id) {
-    return res.status(400).json({ message: 'User ID is required' });
+  if (!user_id || !selectedPhotos || !selectedOptionsMap) {
+    return res.status(400).json({ message: 'User ID, selected photos, and options are required' });
   }
 
   try {
@@ -21,19 +21,22 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       port: 3306,
     });
 
-    const getUserSelectionQuery = 'SELECT photo_id, options FROM user_selections WHERE user_id = ?';
-    const [rows] = await connection.execute<[mysql.RowDataPacket[]]>(getUserSelectionQuery, [user_id]);
+    const deletePreviousSelectionQuery = 'DELETE FROM user_selections WHERE user_id = ?';
+    await connection.execute(deletePreviousSelectionQuery, [user_id]);
 
-    const selectedPhotos = rows.map((row: any) => row.photo_id);
-    const selectedOptionsMap = rows.reduce((map: any, row: any) => {
-      map[row.photo_id] = JSON.parse(row.options);
-      return map;
-    }, {});
+    const insertSelectionQuery = `
+      INSERT INTO user_selections (user_id, photo_id, options) VALUES (?, ?, ?)
+    `;
+
+    for (const photo of selectedPhotos) {
+      const options = selectedOptionsMap[photo.id];
+      await connection.execute(insertSelectionQuery, [user_id, photo.id, JSON.stringify(options)]);
+    }
 
     connection.end();
-    return res.status(200).json({ selectedPhotos, selectedOptionsMap });
+    return res.status(200).json({ message: 'Selection saved successfully' });
   } catch (error: any) {
-    console.error('[GET] Database query error:', error);
+    console.error('[POST] Database query error:', error);
     return res.status(500).json({ message: 'Internal server error', error: error.message });
   }
 };

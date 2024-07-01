@@ -25,7 +25,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(400).json({ message: 'Required fields are missing' });
   }
 
-  // Убедимся, что значение album всегда либо 0, либо 1
   const albumValue = album ? 1 : 0;
 
   try {
@@ -37,42 +36,55 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       port: 3306,
     });
 
-    const familyIdQuery = 'SELECT id FROM families WHERE family_name = ? AND class_id = (SELECT id FROM classes WHERE class_name = ?)';
-    const [familyIdResult] = await connection.execute<RowDataPacket[]>(familyIdQuery, [family_name, class_id]);
+    console.log('Database connection established');
+
+    // Используем class_id напрямую
+    const classId = class_id;
+    console.log('Class ID:', classId);
+
+    const familyIdQuery = 'SELECT id FROM families WHERE family_name = ? AND class_id = ?';
+    console.log('Executing query:', familyIdQuery, [family_name, classId]);
+    const [familyIdResult] = await connection.execute<RowDataPacket[]>(familyIdQuery, [family_name, classId]);
 
     if (familyIdResult.length === 0) {
+      console.log('Family not found for family_name:', family_name, 'and class_id:', classId);
       connection.end();
       return res.status(404).json({ message: 'Family not found' });
     }
 
     const familyId = familyIdResult[0].id;
+    console.log('Family ID:', familyId);
 
     const insertFileNameQuery = `
       INSERT INTO file_names (file_name) VALUES (?),(?)
       ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)
     `;
+    console.log('Executing query:', insertFileNameQuery, [photo10x15Name, photo20x30Name]);
     const [fileNamesResult] = await connection.execute<ResultSetHeader>(insertFileNameQuery, [photo10x15Name, photo20x30Name]);
     const file10x15Id = fileNamesResult.insertId;
     const file20x30Id = fileNamesResult.insertId + 1;
 
+    console.log('File IDs:', file10x15Id, file20x30Id);
+
     const insertQuery = `
-      INSERT INTO family_photos (family_id, photo_id, photo_chronicle, vignette, photo_size, photo_count, file_name_id, album)
+      INSERT INTO family_photos (family_id, photo_id, photo_chronicle, vignette, photo_size, photo_count, file_name_id, album, class_id)
       VALUES
-      (?, ?, ?, ?, '10x15', ?, ?, ?),
-      (?, ?, ?, ?, '20x30', ?, ?, ?)
+      (?, ?, ?, ?, '10x15', ?, ?, ?, ?),
+      (?, ?, ?, ?, '20x30', ?, ?, ?, ?)
     `;
 
     console.log('Insert parameters:', [
-      familyId, file10x15Id, photo_chronicle, vignette, photo_10x15_count, file10x15Id, albumValue,
-      familyId, file20x30Id, photo_chronicle, vignette, photo_20x30_count, file20x30Id, albumValue
+      familyId, file10x15Id, photo_chronicle, vignette, photo_10x15_count, file10x15Id, albumValue, classId,
+      familyId, file20x30Id, photo_chronicle, vignette, photo_20x30_count, file20x30Id, albumValue, classId
     ]);
 
     await connection.execute(insertQuery, [
-      familyId, file10x15Id, photo_chronicle, vignette, photo_10x15_count, file10x15Id, albumValue,
-      familyId, file20x30Id, photo_chronicle, vignette, photo_20x30_count, file20x30Id, albumValue
+      familyId, file10x15Id, photo_chronicle, vignette, photo_10x15_count, file10x15Id, albumValue, classId,
+      familyId, file20x30Id, photo_chronicle, vignette, photo_20x30_count, file20x30Id, albumValue, classId
     ]);
 
     connection.end();
+    console.log('Data inserted successfully');
     return res.status(200).json({ message: 'Selection saved successfully' });
   } catch (error) {
     console.error('Database query error:', error);
