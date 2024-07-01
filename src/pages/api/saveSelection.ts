@@ -57,8 +57,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     const insertQuery = `
       INSERT INTO family_photos (family_id, photo_id, photo_chronicle, vignette, photo_size, photo_count, file_name_id, album)
-      VALUES 
-      (?, ?, ?, ?, '10x15', ?, ?, ?), 
+      VALUES
+      (?, ?, ?, ?, '10x15', ?, ?, ?),
       (?, ?, ?, ?, '20x30', ?, ?, ?)
     `;
 

@@ -6,12 +6,24 @@ import GalleryGrid from '../components/GalleryGrid';
 import YandexDiskService from '../services/YandexDiskService';
 import { SelectedOptions, Photo, User } from '../types';
 import { resetPhotoSelection } from '../pages/api/resetPhotoSelection';
+import axios from "axios";
+
+const defaultOptions = {
+  lastName: '',
+  photo10x15: 0,
+  photo20x30: 0,
+  photoInYearbook: false,
+  additionalPhotos: false,
+  vignette: false,
+  photo10x15Name: '',
+  photo20x30Name: '',
+  photoInAlbum: false,
+}
 
 const Gallery = () => {
   const [user, setUser] = useState<User>({ class_name: '', school_name: '' });
-  const [selectedPhotos, setSelectedPhotos] = useState<Photo[]>([]);
+  const [savedPhotos, setSavedPhotos] = useState<Photo[]>([]);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [showModal, setShowModal] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
   const [initialIndex, setInitialIndex] = useState(0);
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -25,6 +37,7 @@ const Gallery = () => {
     }
   }, []);
 
+  // get photos by class
   useEffect(() => {
     const fetchPhotos = async () => {
       if (user.school_name && user.class_name) {
@@ -48,70 +61,113 @@ const Gallery = () => {
   }, [user]);
 
   useEffect(() => {
-    const fetchUserSelection = async () => {
-      if (user.class_name) {
-        const res = await fetch(`/api/getUserSelection?user_id=${user.class_name}`);
-        if (res.ok) {
-          const data = await res.json();
-          const { selectedPhotos, selectedOptionsMap } = data;
-          setSelectedPhotos(photos.filter(photo => selectedPhotos.includes(photo.id)));
-          setSelectedOptionsMap(selectedOptionsMap);
-          console.log('User selection fetched:', data);
-        } else {
-          console.error('Failed to fetch user selection');
-        }
-      }
-    };
-
-    fetchUserSelection();
+    // const fetchUserSelection = async () => {
+    //   if (user.class_name) {
+    //     const res = await fetch(`/api/getUserSelection?user_id=${user.class_name}`);
+    //     if (res.ok) {
+    //       const data = await res.json();
+    //       const { selectedPhotos, selectedOptionsMap } = data;
+    //       setSelectedPhotos(photos.filter(photo => selectedPhotos.includes(photo.id)));
+    //       setSelectedOptionsMap(selectedOptionsMap);
+    //       console.log('User selection fetched:', data);
+    //     } else {
+    //       console.error('Failed to fetch user selection');
+    //     }
+    //   }
+    // };
+    //
+    // fetchUserSelection();
   }, [user, photos]);
 
   const handleSelectPhoto = (photo: Photo) => {
     console.log('Photo selected:', photo);
     setSelectedPhoto(photo);
-    setSelectedPhotos(prevSelectedPhotos => {
-      const alreadySelected = prevSelectedPhotos.some(p => p.id === photo.id);
-      if (alreadySelected) {
-        return prevSelectedPhotos.filter(p => p.id !== photo.id);
-      } else {
-        return [...prevSelectedPhotos, photo];
-      }
-    });
-    setShowModal(true);
+    // setSavedPhotos(prevSelectedPhotos => {
+    //   const alreadySelected = prevSelectedPhotos.some(p => p.id === photo.id);
+    //   if (alreadySelected) {
+    //     return prevSelectedPhotos.filter(p => p.id !== photo.id);
+    //   } else {
+    //     return [...prevSelectedPhotos, photo];
+    //   }
+    // });
   };
 
-  const handleConfirmSelection = async () => {
-    setShowModal(false);
-    if (selectedPhoto) {
-      const selectedOptions = selectedOptionsMap[selectedPhoto.id];
+  const handleConfirmSelection = async (options: SelectedOptions) => {
+    if (!selectedPhoto) {
+      return;
+    }
+      const data = options;
+    //
+    //   if (!selectedOptions.lastName) {
+    //     alert("Фамилия не выбрана");
+    //     return;
+    //   }
+    //
+    //   const payload = {
+    //     class_id: user.class_name,
+    //     family_name: selectedOptions.lastName,
+    //     photo_id: selectedPhoto.id,
+    //     photo_chronicle: selectedOptions.photoInYearbook ? 1 : 0,
+    //     vignette: selectedOptions.vignette ? 1 : 0,
+    //     photo_10x15: selectedOptions.photo10x15,
+    //     photo_20x30: selectedOptions.photo20x30,
+    //     photo10x15Name: selectedPhoto ? selectedPhoto.alt : options.photo10x15Name,
+    //     photo20x30Name: selectedPhoto ? selectedPhoto.alt : options.photo20x30Name,
+    //     album: selectedOptions.photoInAlbum ? 1 : 0,
+    //   };
+    //   console.log('Payload to be sent to server:', payload);
+    //
+    //   const res = await fetch('/api/saveSelection', {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify(payload),
+    //   });
+    //
+    //   if (!res.ok) {
+    //     console.error('Ошибка при сохранении выбора');
+    //   } else {
+    //     console.log('Selection saved successfully.');
+    //   }
+    // }
+    // setSelectedPhoto(null);
+    //
+    // if (!selectedPhoto) {
+    //   alert('Пожалуйста, выберите фото.');
+    //   return;
+    // }
+    try {
       const payload = {
         class_id: user.class_name,
-        family_name: selectedOptions.lastName,
+        family_name: data.lastName,
         photo_id: selectedPhoto.id,
-        photo_chronicle: selectedOptions.photoInYearbook ? 1 : 0,
-        vignette: selectedOptions.vignette ? 1 : 0,
-        photo_10x15: selectedOptions.photo10x15,
-        photo_20x30: selectedOptions.photo20x30,
-        photo10x15Name: selectedOptions.photo10x15Name,
-        photo20x30Name: selectedOptions.photo20x30Name,
-        album: selectedOptions.photoInAlbum ? 1 : 0,
+        photo_chronicle: data.photoInYearbook ? 1 : 0,
+        vignette: data.vignette ? 1 : 0,
+        photo_10x15_count: data.photo10x15,
+        photo_20x30_count: data.photo20x30,
+        photo10x15Name: selectedPhoto ? selectedPhoto.alt : data.photo10x15Name,
+        photo20x30Name: selectedPhoto ? selectedPhoto.alt : data.photo20x30Name,
+        album: data.photoInAlbum ? 1 : 0,
       };
       console.log('Payload to be sent to server:', payload);
 
-      const res = await fetch('/api/saveSelection', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
+      const res = await axios.post('/api/saveSelection', payload);
 
-      if (!res.ok) {
-        console.error('Ошибка при сохранении выбора');
+      if (res.status === 200) {
+        console.log('Выбор успешно сохранен');
+        setSelectedOptionsMap(prev => ({
+          ...prev,
+          [selectedPhoto.id]: options
+        }))
+        setSavedPhotos(prev => [...prev, selectedPhoto])
       } else {
-        console.log('Selection saved successfully.');
+        console.error('Ошибка при сохранении выбора');
       }
+    } catch (error) {
+      console.error('Ошибка при сохранении выбора', error);
     }
+    setSelectedPhoto(null);
   };
 
   const handleDeleteSelection = async (photo: Photo) => {
@@ -134,7 +190,7 @@ const Gallery = () => {
 
       if (res.ok) {
         console.log('Selection deleted successfully');
-        setSelectedPhotos(prevSelectedPhotos => prevSelectedPhotos.filter(p => p.id !== photo.id));
+        // setSavedPhotos(prevSelectedPhotos => prevSelectedPhotos.filter(p => p.id !== photo.id));
         setSelectedOptionsMap(prev => {
           const newMap = { ...prev };
           delete newMap[photo.id];
@@ -158,7 +214,7 @@ const Gallery = () => {
           },
           body: JSON.stringify({
             user_id: user.class_name,
-            selectedPhotos,
+            selectedPhotos: savedPhotos,
             selectedOptionsMap,
           }),
         });
@@ -173,14 +229,14 @@ const Gallery = () => {
       }
     };
 
-    if (selectedPhotos.length > 0) {
+    if (savedPhotos.length > 0) {
       saveUserSelection();
     }
-  }, [selectedPhotos, selectedOptionsMap, user.class_name]);
+  }, [savedPhotos, selectedOptionsMap, user.class_name]);
 
   const closeModal = () => {
     console.log('Closing modal');
-    setShowModal(false);
+    setSelectedPhoto(null);
   };
 
   const openLightbox = (index: number) => {
@@ -200,9 +256,10 @@ const Gallery = () => {
   };
 
   useEffect(() => {
-    console.log('Selected photos:', selectedPhotos);
+    console.log('Selected photos:', savedPhotos);
     console.log('Selected options map:', selectedOptionsMap);
-  }, [selectedPhotos, selectedOptionsMap]);
+  }, [savedPhotos, selectedOptionsMap]);
+
 
   return (
     <div className={styles.galleryContainer}>
@@ -212,15 +269,14 @@ const Gallery = () => {
       {photos.length > 0 ? (
         <GalleryGrid
           photos={photos}
-          schoolName={user.school_name}
-          className={user.class_name}
-          selectedPhotos={selectedPhotos}
-          setSelectedPhotos={setSelectedPhotos}
+          // schoolName={user.school_name}
+          // className={user.class_name}
+          savedPhotos={savedPhotos}
+          setSelectedPhotos={setSavedPhotos}
           selectedOptionsMap={selectedOptionsMap}
           handleSelectPhoto={handleSelectPhoto}
           handleDeleteSelection={handleDeleteSelection}
           openLightbox={openLightbox}
-          onSelectedOptionsChange={handleSelectedOptionsChange}
         />
       ) : (
         <p>Загрузка фотографий...</p>
@@ -232,21 +288,11 @@ const Gallery = () => {
           onClose={closeLightbox}
         />
       )}
-      {showModal && selectedPhoto && (
+      {selectedPhoto && (
         <PhotoModal
           className={user.class_name}
-          selectedOptions={selectedOptionsMap[selectedPhoto.id] || {
-            lastName: '',
-            photo10x15: 0,
-            photo20x30: 0,
-            photoInYearbook: false,
-            additionalPhotos: false,
-            vignette: false,
-            photo10x15Name: '',
-            photo20x30Name: '',
-            photoInAlbum: false,
-          }}
-          onSelectedOptionsChange={(options: SelectedOptions) => handleSelectedOptionsChange(selectedPhoto.id, options)}
+          selectedOptions={selectedOptionsMap[selectedPhoto.id] || defaultOptions}
+          // onSelectedOptionsChange={(options: SelectedOptions) => handleSelectedOptionsChange(selectedPhoto.id, options)}
           handleConfirmSelection={handleConfirmSelection}
           closeModal={closeModal}
           selectedPhoto={selectedPhoto}

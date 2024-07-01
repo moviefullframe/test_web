@@ -4,29 +4,38 @@ import { Photo, SelectedOptions } from '../types';
 
 type GalleryGridProps = {
   photos: Photo[];
-  schoolName: string;
-  className: string;
-  selectedPhotos: Photo[];
+  // schoolName: string;
+  // className: string;
   setSelectedPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
+  savedPhotos: Photo[];
   selectedOptionsMap: { [key: number]: SelectedOptions };
   handleSelectPhoto: (photo: Photo) => void;
   handleDeleteSelection: (photo: Photo) => void;
   openLightbox: (index: number) => void;
-  onSelectedOptionsChange: (photoId: number, options: SelectedOptions) => void;
 };
 
 const GalleryGrid: React.FC<GalleryGridProps> = ({
   photos,
-  schoolName,
-  className,
-  selectedPhotos,
-  setSelectedPhotos,
+  savedPhotos,
   selectedOptionsMap,
   handleSelectPhoto,
   handleDeleteSelection,
   openLightbox,
-  onSelectedOptionsChange,
 }) => {
+
+  function handleClick(photo: Photo) {
+    if (savedPhotos.some(p => p.id === photo.id)) {
+      handleDeleteSelection(photo);
+    } else {
+      handleSelectPhoto(photo);
+    }
+  }
+
+  function isSelected(photo: Photo): boolean {
+    return savedPhotos.some(p => p.id === photo.id);
+  }
+
+  console.log("photos", photos, selectedOptionsMap[photos[2].id])
   return (
     <div className={styles.galleryGrid}>
       {photos.map((photo, index) => {
@@ -43,23 +52,17 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
         };
 
         return (
-          <div key={photo.id} className={`${styles.galleryItem} ${selectedPhotos.some(p => p.id === photo.id) ? styles.selected : ''}`}>
+          <div key={photo.id} className={`${styles.galleryItem} ${isSelected(photo) ? styles.selected : ''}`}>
             <a href={photo.src} data-sub-html={photo.alt} onClick={(e) => { e.preventDefault(); openLightbox(index); }}>
               <img src={photo.src} alt={photo.alt} />
             </a>
             <button
               className={styles.button}
-              onClick={() => {
-                if (selectedPhotos.some(p => p.id === photo.id)) {
-                  handleDeleteSelection(photo);
-                } else {
-                  handleSelectPhoto(photo);
-                }
-              }}
+              onClick={() => handleClick(photo)}
             >
-              {selectedPhotos.some(p => p.id === photo.id) ? 'Отменить выбор' : 'Выбрать фото'}
+              {isSelected(photo) ? 'Отменить выбор' : 'Выбрать фото'}
             </button>
-            {selectedPhotos.some(p => p.id === photo.id) && (
+            {isSelected(photo) && (
               <div className={styles.selectedOverlay}>
                 <div className={styles.selectedTextContainer}>
                   <div className="title">ЗАКАЗАНО: {selectedOptions.lastName}</div>

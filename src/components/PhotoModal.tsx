@@ -7,10 +7,10 @@ import { SelectedOptions, Family, Photo } from '../types';
 type PhotoModalProps = {
   className: string;
   selectedOptions: SelectedOptions;
-  onSelectedOptionsChange: (options: SelectedOptions) => void;
-  handleConfirmSelection: () => void;
+  // onSelectedOptionsChange: (options: SelectedOptions) => void;
+  handleConfirmSelection: (data: SelectedOptions) => void;
   closeModal: () => void;
-  selectedPhoto: Photo | null;
+  selectedPhoto: Photo;
 };
 
 const defaultSelectedOptions: SelectedOptions = {
@@ -28,7 +28,7 @@ const defaultSelectedOptions: SelectedOptions = {
 const PhotoModal: React.FC<PhotoModalProps> = ({
   className,
   selectedOptions,
-  onSelectedOptionsChange,
+  // onSelectedOptionsChange,
   handleConfirmSelection,
   closeModal,
   selectedPhoto
@@ -56,45 +56,17 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     fetchFamilies();
   }, [className]);
 
-  useEffect(() => {
-    const subscription = watch((value) => onSelectedOptionsChange({
-      ...defaultSelectedOptions,
-      ...value,
-    }));
-    return () => subscription.unsubscribe();
-  }, [watch, onSelectedOptionsChange]);
+  // useEffect(() => {
+  //   const subscription = watch((value) => onSelectedOptionsChange({
+  //     ...defaultSelectedOptions,
+  //     ...value,
+  //   }));
+  //   return () => subscription.unsubscribe();
+  // }, [watch, onSelectedOptionsChange]);
 
   const onSubmit: SubmitHandler<SelectedOptions> = async (data) => {
-    if (!selectedPhoto) {
-      alert('Пожалуйста, выберите фото.');
-      return;
-    }
-    try {
-      const payload = {
-        class_id: className,
-        family_name: data.lastName,
-        photo_id: selectedPhoto.id,
-        photo_chronicle: data.photoInYearbook ? 1 : 0,
-        vignette: data.vignette ? 1 : 0,
-        photo_10x15_count: data.photo10x15,
-        photo_20x30_count: data.photo20x30,
-        photo10x15Name: selectedPhoto ? selectedPhoto.alt : data.photo10x15Name,
-        photo20x30Name: selectedPhoto ? selectedPhoto.alt : data.photo20x30Name,
-        album: data.photoInAlbum ? 1 : 0,
-      };
-      console.log('Payload to be sent to server:', payload);
+    handleConfirmSelection(data)
 
-      const res = await axios.post('/api/saveSelection', payload);
-
-      if (res.status === 200) {
-        console.log('Выбор успешно сохранен');
-        handleConfirmSelection();
-      } else {
-        console.error('Ошибка при сохранении выбора');
-      }
-    } catch (error) {
-      console.error('Ошибка при сохранении выбора', error);
-    }
   };
 
   return (
