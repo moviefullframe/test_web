@@ -32,7 +32,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     await connection.end();
 
-    if (Array.isArray(photoRows) && photoRows.length > 0) {
+    if (Array.isArray(photoRows)) {
       return res.status(200).json(photoRows);
     } else {
       return res.status(404).json({ message: 'Photos not found' });

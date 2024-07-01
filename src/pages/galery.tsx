@@ -90,11 +90,7 @@ const Gallery = () => {
             const data = res.data;
             console.log('Data fetched from database:', data);
 
-            const savedPhotos = data.map((item: any) => ({
-              id: item.photo_id,
-              src: item.file_name,
-              alt: item.file_name,
-            }));
+            const savedPhotos = data;
             const selectedOptionsMap = data.reduce((acc: any, item: any) => {
               acc[item.photo_id] = {
                 lastName: item.family_name,
@@ -176,10 +172,34 @@ const Gallery = () => {
       return;
     }
 
+    // try {
+    //   const res = await axios.delete('/api/deleteUserSelection', {
+    //     data: {
+    //       class_id: user.class_id,
+    //       family_name: options.lastName,
+    //       photo_id: photo.id,
+    //     },
+    //   });
+    //
+    //   if (res.status === 200) {
+    //     console.log('Selection deleted successfully');
+    //     setSelectedOptionsMap(prev => {
+    //       const newMap = { ...prev };
+    //       delete newMap[photo.id];
+    //       return newMap;
+    //     });
+    //     setSavedPhotos(prev => prev.filter(p => p.id !== photo.id));
+    //   } else {
+    //     console.error('Failed to delete selection');
+    //   }
+    // } catch (error) {
+    //   console.error('Error deleting selection:', error);
+    // }
+
     try {
-      const res = await axios.delete('/api/deleteUserSelection', {
+      const res = await axios.delete('/api/deleteSelection', {
         data: {
-          class_id: user.class_id,
+          class_name: user.class_name,
           family_name: options.lastName,
           photo_id: photo.id,
         },
@@ -202,27 +222,27 @@ const Gallery = () => {
   };
 
   useEffect(() => {
-    const saveUserSelection = async () => {
-      if (savedPhotos.length > 0 && Object.keys(selectedOptionsMap).length > 0) {
-        try {
-          const res = await axios.post('/api/saveUserSelection', {
-            class_id: user.class_id,
-            selectedPhotos: savedPhotos,
-            selectedOptionsMap,
-          });
-
-          if (res.status === 200) {
-            console.log('User selection saved successfully.');
-          } else {
-            console.error('Failed to save user selection');
-          }
-        } catch (error) {
-          console.error('Error saving user selection:', error);
-        }
-      }
-    };
-
-    saveUserSelection();
+    // const saveUserSelection = async () => {
+    //   if (savedPhotos.length > 0 && Object.keys(selectedOptionsMap).length > 0) {
+    //     try {
+    //       const res = await axios.post('/api/saveUserSelection', {
+    //         class_id: user.class_id,
+    //         selectedPhotos: savedPhotos,
+    //         selectedOptionsMap,
+    //       });
+    //
+    //       if (res.status === 200) {
+    //         console.log('User selection saved successfully.');
+    //       } else {
+    //         console.error('Failed to save user selection');
+    //       }
+    //     } catch (error) {
+    //       console.error('Error saving user selection:', error);
+    //     }
+    //   }
+    // };
+    //
+    // saveUserSelection();
   }, [savedPhotos, selectedOptionsMap, user.class_id]);
 
   const closeModal = () => {

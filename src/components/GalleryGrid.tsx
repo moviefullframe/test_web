@@ -35,7 +35,7 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
     return savedPhotos.some(p => p.id === photo.id);
   }
 
-  console.log("photos", photos, selectedOptionsMap[photos[2].id])
+  console.log("gallery grid", photos, savedPhotos)
   return (
     <div className={styles.galleryGrid}>
       {photos.map((photo, index) => {
@@ -69,6 +69,8 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
                   {selectedOptions.photoInYearbook && <div className="detailItem">✔ Фото в летопись</div>}
                   {selectedOptions.vignette && <div className="detailItem">✔ ВИНЬЕТКА</div>}
                   {selectedOptions.photoInAlbum && <div className="detailItem">✔ Фото в альбом</div>}
+                  {!!selectedOptions.photo10x15 && <div className="detailItem">✔ Доп фото 10x15 {selectedOptions.photo10x15}шт</div>}
+                  {!!selectedOptions.photo20x30 && <div className="detailItem">✔ Доп фото 20x30 {selectedOptions.photo20x30}шт</div>}
                 </div>
               </div>
             )}
