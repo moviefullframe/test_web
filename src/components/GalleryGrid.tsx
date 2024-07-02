@@ -4,8 +4,6 @@ import { Photo, SelectedOptions } from '../types';
 
 type GalleryGridProps = {
   photos: Photo[];
-  // schoolName: string;
-  // className: string;
   setSelectedPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
   savedPhotos: Photo[];
   selectedOptionsMap: { [key: number]: SelectedOptions };
@@ -22,7 +20,6 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
   handleDeleteSelection,
   openLightbox,
 }) => {
-
   function handleClick(photo: Photo) {
     if (savedPhotos.some(p => p.id === photo.id)) {
       handleDeleteSelection(photo);
@@ -35,7 +32,8 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
     return savedPhotos.some(p => p.id === photo.id);
   }
 
-  console.log("gallery grid", photos, savedPhotos)
+  console.log("gallery grid", photos, savedPhotos);
+
   return (
     <div className={styles.galleryGrid}>
       {photos.map((photo, index) => {
@@ -52,7 +50,7 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
         };
 
         return (
-          <div key={photo.id} className={`${styles.galleryItem} ${isSelected(photo) ? styles.selected : ''}`}>
+          <div key={photo.id || `photo-${index}`} className={`${styles.galleryItem} ${isSelected(photo) ? styles.selected : ''}`}>
             <a href={photo.src} data-sub-html={photo.alt} onClick={(e) => { e.preventDefault(); openLightbox(index); }}>
               <img src={photo.src} alt={photo.alt} />
             </a>

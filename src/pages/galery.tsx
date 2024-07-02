@@ -4,7 +4,6 @@ import styles from '../app/Gallery.module.css';
 import PhotoModal from '../components/PhotoModal';
 import LightboxGallery from '../components/LightboxGallery';
 import GalleryGrid from '../components/GalleryGrid';
-import YandexDiskService from '../services/YandexDiskService';
 import { SelectedOptions, Photo, User } from '../types';
 
 const defaultOptions = {
@@ -59,21 +58,30 @@ const Gallery = () => {
     const fetchPhotos = async () => {
       if (user.school_name && user.class_name) {
         const folderPath = `schools/${user.school_name}/${user.class_name}`;
-        console.log('Fetching photos from Yandex Disk with folderPath:', folderPath);
+        console.log('Fetching photos from Yandex Object Storage with folderPath:', folderPath);
         try {
-          const items = await YandexDiskService.getFolderContents(folderPath);
-          console.log('Yandex Disk items fetched:', items);
-          const fetchedPhotos = items
-            .filter((item: any) => item.type === 'file')
-            .map((item: any, index: number) => ({
-              id: index + 1,
-              src: item.file,
-              alt: item.name,
-            }));
+          const response = await axios.get(`/api/getFolderContents`, {
+            params: {
+              bucketName: 'testphoto2',
+              folderPath,
+            },
+          });
+
+          const items = response.data;
+          console.log('Yandex Object Storage items fetched:', items);
+
+          const fetchedPhotos = items.map((item: any) => ({
+            id: item.photo_id,
+            src: item.src,
+            alt: item.alt,
+            photoSize: item.photoSize,
+            photoType: item.photoType,
+          }));
+          
           setPhotos(fetchedPhotos);
-          console.log('Photos fetched from Yandex Disk:', fetchedPhotos);
+          console.log('Photos fetched from Yandex Object Storage:', fetchedPhotos);
         } catch (error) {
-          console.error('Error fetching photos from Yandex Disk:', error);
+          console.error('Error fetching photos from Yandex Object Storage:', error);
         }
       }
     };
@@ -172,30 +180,6 @@ const Gallery = () => {
       return;
     }
 
-    // try {
-    //   const res = await axios.delete('/api/deleteUserSelection', {
-    //     data: {
-    //       class_id: user.class_id,
-    //       family_name: options.lastName,
-    //       photo_id: photo.id,
-    //     },
-    //   });
-    //
-    //   if (res.status === 200) {
-    //     console.log('Selection deleted successfully');
-    //     setSelectedOptionsMap(prev => {
-    //       const newMap = { ...prev };
-    //       delete newMap[photo.id];
-    //       return newMap;
-    //     });
-    //     setSavedPhotos(prev => prev.filter(p => p.id !== photo.id));
-    //   } else {
-    //     console.error('Failed to delete selection');
-    //   }
-    // } catch (error) {
-    //   console.error('Error deleting selection:', error);
-    // }
-
     try {
       const res = await axios.delete('/api/deleteSelection', {
         data: {
@@ -230,7 +214,7 @@ const Gallery = () => {
     //         selectedPhotos: savedPhotos,
     //         selectedOptionsMap,
     //       });
-    //
+
     //       if (res.status === 200) {
     //         console.log('User selection saved successfully.');
     //       } else {
@@ -241,7 +225,7 @@ const Gallery = () => {
     //     }
     //   }
     // };
-    //
+
     // saveUserSelection();
   }, [savedPhotos, selectedOptionsMap, user.class_id]);
 
