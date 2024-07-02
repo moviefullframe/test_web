@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { S3Client, ListObjectsV2Command } from "@aws-sdk/client-s3";
-import mysql from 'mysql2/promise';
+import { S3Client, ListObjectsV2Command, S3ServiceException } from "@aws-sdk/client-s3";
+import mysql, { RowDataPacket } from 'mysql2/promise';
 
 const s3Client = new S3Client({
   endpoint: 'https://storage.yandexcloud.net',
@@ -11,10 +11,17 @@ const s3Client = new S3Client({
   },
 });
 
+interface PhotoMapping extends RowDataPacket {
+  id: number;
+  photo_id: number;
+  cloud_id: string;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { bucketName, folderPath } = req.query;
 
   if (!bucketName || !folderPath) {
+    console.log('Missing required parameters:', { bucketName, folderPath });
     return res.status(400).json({ message: 'Missing required parameters' });
   }
 
@@ -23,13 +30,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     Prefix: folderPath as string,
   };
 
+  let data;
   try {
-    const data = await s3Client.send(new ListObjectsV2Command(params));
-    if (!data.Contents) {
+    console.log('Sending request to Yandex Cloud with params:', params);
+    data = await s3Client.send(new ListObjectsV2Command(params));
+    console.log('Received data from Yandex Cloud:', data);
+  } catch (error) {
+    if (error instanceof S3ServiceException && (error.name === 'NoSuchBucket' || error.name === 'NotFound')) {
       console.error('No contents found in the specified bucket and folder path.');
-      return res.status(404).json({ message: 'No contents found' });
+      data = { Contents: [] }; 
+    } else {
+      console.error('Error fetching folder contents from Yandex Cloud:', error);
+      return res.status(500).json({ message: 'Internal server error' });
     }
+  }
 
+  try {
     const connection = await mysql.createConnection({
       host: 'photofomin26.synology.me',
       user: 'Admin_Oleg',
@@ -38,24 +54,86 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       port: 3306,
     });
 
-    const photos = await Promise.all(data.Contents.map(async item => {
-      if (!item.ETag) {
-        console.warn(`Skipping item without ETag: ${item.Key}`);
-        return null;
+    console.log('Connected to the database');
+
+    const [existingPhotos]: [PhotoMapping[], any] = await connection.execute(
+      `SELECT id, photo_id, cloud_id FROM photo_mappings WHERE file_name LIKE ?`,
+      [`%${folderPath}%`]
+    );
+    const existingPhotoIds = existingPhotos.map((photo) => photo.photo_id);
+    const existingCloudIds = existingPhotos.map((photo) => photo.cloud_id);
+
+    console.log('Existing photos fetched from the database:', existingPhotoIds);
+    console.log('Existing cloud IDs fetched from the database:', existingCloudIds);
+
+    if (!data.Contents || data.Contents.length === 0) {
+  
+      console.log('Attempting to delete all related photo_ids:', existingPhotoIds);
+      if (existingPhotoIds.length > 0) {
+        await connection.execute(`DELETE FROM photo_mappings WHERE photo_id IN (?)`, [existingPhotoIds]);
+        console.log('Deleted all photo_ids:', existingPhotoIds);
+      } else {
+        console.log('No photos to delete.');
+      }
+
+      await connection.end();
+      return res.status(404).json({ message: 'No contents found' });
+    }
+
+    
+    const validPhotos: string[] = data.Contents.map(item => item.ETag?.replace(/"/g, '')).filter(Boolean) as string[];
+    const validPhotoIds = data.Contents
+      .filter(item => item.Key !== undefined) 
+      .map(item => parseInt(item.Key!.split('/').pop()?.split('.')[0] || '0')).filter(Boolean);
+
+    console.log('Valid photos from Yandex Cloud:', validPhotos);
+    console.log('Valid photo IDs from Yandex Cloud:', validPhotoIds);
+
+  
+    console.log('photo_id in database:', existingPhotoIds);
+    console.log('photo_id on Yandex:', validPhotoIds);
+    console.log('cloud_id in database:', existingCloudIds);
+    console.log('cloud_id on Yandex:', validPhotos);
+
+  
+    const photosToDelete = existingPhotoIds.filter((id) => !validPhotoIds.includes(id));
+    if (photosToDelete.length > 0) {
+      console.log('Attempting to delete photo_ids:', photosToDelete);
+      const [result] = await connection.execute(`DELETE FROM photo_mappings WHERE photo_id IN (?)`, [photosToDelete]);
+      console.log('Delete result:', result);
+    } else {
+      console.log('No photos to delete.');
+    }
+
+    
+    const cloudIdsToDelete = existingCloudIds.filter((cloud_id) => !validPhotos.includes(cloud_id));
+    if (cloudIdsToDelete.length > 0) {
+      console.log('Attempting to delete cloud_ids:', cloudIdsToDelete);
+      const [result] = await connection.execute(`DELETE FROM photo_mappings WHERE cloud_id IN (?)`, [cloudIdsToDelete]);
+      console.log('Delete result for cloud_ids:', result);
+    } else {
+      console.log('No cloud_ids to delete.');
+    }
+
+   
+    for (const item of data.Contents) {
+      if (!item.ETag || !item.Key) {
+        console.warn(`Skipping item without ETag or Key: ${item.Key}`);
+        continue;
       }
 
       const photo = {
-        id: item.ETag.replace(/"/g, ''), // Убираем кавычки из ETag
+        id: item.ETag.replace(/"/g, ''), 
         src: `https://${bucketName}.storage.yandexcloud.net/${item.Key}`,
         alt: item.Key || 'No description',
         photoSize: item.Size ? `${item.Size} bytes` : 'unknown',
         photoType: item.Key ? item.Key.split('.').pop() || 'unknown' : 'unknown',
-        photo_id: null as number | null,
+        photo_id: parseInt(item.Key.split('/').pop()?.split('.')[0] || '0'), 
       };
 
       console.log('Processing photo:', photo);
 
-      const [rows]: [any[], any] = await connection.execute(
+      const [rows]: [PhotoMapping[], any] = await connection.execute(
         `SELECT id AS photo_id FROM photo_mappings WHERE cloud_id = ?`,
         [photo.id]
       );
@@ -70,18 +148,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           `INSERT INTO photo_mappings (cloud_id, file_name) VALUES (?, ?)`,
           [photo.id, photo.alt]
         );
-        const [newRow]: [any[], any] = await connection.execute(
+        const [newRow]: [PhotoMapping[], any] = await connection.execute(
           `SELECT id AS photo_id FROM photo_mappings WHERE cloud_id = ?`,
           [photo.id]
         );
         photo.photo_id = newRow[0].photo_id;
         console.log('New photo_id inserted:', photo.photo_id);
       }
-
-      return photo;
-    }));
-
-    const validPhotos = photos.filter(photo => photo !== null);
+    }
 
     await connection.end();
 
@@ -89,7 +163,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json(validPhotos);
   } catch (error) {
-    console.error('Error fetching folder contents from Yandex Cloud:', error);
+    console.error('Error processing database operations:', error);
     return res.status(500).json({ message: 'Internal server error' });
   }
 }

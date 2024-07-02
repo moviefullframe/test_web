@@ -26,6 +26,7 @@ const Gallery = () => {
   const [initialIndex, setInitialIndex] = useState(0);
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [selectedOptionsMap, setSelectedOptionsMap] = useState<{ [key: number]: SelectedOptions }>({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -45,7 +46,7 @@ const Gallery = () => {
           } else {
             console.error('Failed to fetch class_id');
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error('Error fetching class_id:', error);
         }
       };
@@ -80,8 +81,14 @@ const Gallery = () => {
 
           setPhotos(fetchedPhotos);
           console.log('Photos fetched from Yandex Object Storage:', fetchedPhotos);
-        } catch (error) {
-          console.error('Error fetching photos from Yandex Object Storage:', error);
+        } catch (error: any) {
+          if (error.response && error.response.status === 404) {
+            console.error('No contents found in the specified bucket and folder path.');
+          } else {
+            console.error('Error fetching photos from Yandex Object Storage:', error);
+          }
+        } finally {
+          setLoading(false);
         }
       }
     };
@@ -262,18 +269,22 @@ const Gallery = () => {
       <h1>Добро пожаловать на страницу галереи</h1>
       <p>Школа: {user.school_name}</p>
       <p>Класс: {user.class_name}</p>
-      {photos.length > 0 ? (
-        <GalleryGrid
-          photos={photos}
-          savedPhotos={savedPhotos}
-          setSelectedPhotos={setSavedPhotos}
-          selectedOptionsMap={selectedOptionsMap}
-          handleSelectPhoto={handleSelectPhoto}
-          handleDeleteSelection={handleDeleteSelection}
-          openLightbox={openLightbox}
-        />
-      ) : (
+      {loading ? (
         <p>Загрузка фотографий...</p>
+      ) : (
+        photos.length > 0 ? (
+          <GalleryGrid
+            photos={photos}
+            savedPhotos={savedPhotos}
+            setSelectedPhotos={setSavedPhotos}
+            selectedOptionsMap={selectedOptionsMap}
+            handleSelectPhoto={handleSelectPhoto}
+            handleDeleteSelection={handleDeleteSelection}
+            openLightbox={openLightbox}
+          />
+        ) : (
+          <p>Фотографии отсутствуют.</p>
+        )
       )}
       {showLightbox && (
         <LightboxGallery
