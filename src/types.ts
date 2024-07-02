@@ -27,6 +27,7 @@ export type Photo = {
   alt: string;
   photoSize: string; // Добавляем свойство для размера фото
   photoType: string; // Добавляем свойство для типа фото
+  photo_id?: number;
   additionalPhotos?: string[];
 };
 

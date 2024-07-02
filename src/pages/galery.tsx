@@ -77,7 +77,7 @@ const Gallery = () => {
             photoSize: item.photoSize,
             photoType: item.photoType,
           }));
-          
+
           setPhotos(fetchedPhotos);
           console.log('Photos fetched from Yandex Object Storage:', fetchedPhotos);
         } catch (error) {
@@ -183,7 +183,7 @@ const Gallery = () => {
     try {
       const res = await axios.delete('/api/deleteSelection', {
         data: {
-          class_name: user.class_name,
+          class_id: user.class_id,
           family_name: options.lastName,
           photo_id: photo.id,
         },

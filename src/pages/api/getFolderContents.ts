@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const photo = {
-        id: item.ETag.replace(/"/g, ''),  // Удаляем кавычки
+        id: item.ETag.replace(/"/g, ''), // Убираем кавычки из ETag
         src: `https://${bucketName}.storage.yandexcloud.net/${item.Key}`,
         alt: item.Key || 'No description',
         photoSize: item.Size ? `${item.Size} bytes` : 'unknown',
@@ -56,32 +56,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('Processing photo:', photo);
 
       const [rows]: [any[], any] = await connection.execute(
-        `SELECT photo_id FROM photo_mappings WHERE cloud_id = ?`,
+        `SELECT id AS photo_id FROM photo_mappings WHERE cloud_id = ?`,
         [photo.id]
       );
 
       console.log('Rows fetched from photo_mappings:', rows);
 
-      if (rows.length > 0 && rows[0].photo_id !== null) {
+      if (rows.length > 0) {
         photo.photo_id = rows[0].photo_id;
         console.log('Existing photo_id found:', photo.photo_id);
       } else {
         const [result]: [mysql.ResultSetHeader, any] = await connection.execute(
-          `INSERT INTO photo_mappings (cloud_id, file_name) VALUES (?, ?)
-           ON DUPLICATE KEY UPDATE photo_id=LAST_INSERT_ID(photo_id), cloud_id=VALUES(cloud_id), file_name=VALUES(file_name)`,
+          `INSERT INTO photo_mappings (cloud_id, file_name) VALUES (?, ?)`,
           [photo.id, photo.alt]
         );
-        if (result.insertId) {
-          photo.photo_id = result.insertId;
-          console.log('New photo_id inserted:', photo.photo_id);
-        } else {
-          const [updatedRows]: [any[], any] = await connection.execute(
-            `SELECT photo_id FROM photo_mappings WHERE cloud_id = ?`,
-            [photo.id]
-          );
-          photo.photo_id = updatedRows[0].photo_id;
-          console.log('Updated existing photo_id to:', photo.photo_id);
-        }
+        const newPhotoId = result.insertId;
+        await connection.execute(
+          `UPDATE photo_mappings SET photo_id = ? WHERE id = ?`,
+          [newPhotoId, newPhotoId]
+        );
+        photo.photo_id = newPhotoId;
+        console.log('New photo_id inserted:', photo.photo_id);
       }
 
       return photo;
