@@ -203,7 +203,7 @@ const Gallery = () => {
           delete newMap[photo.id];
           return newMap;
         });
-        setSavedPhotos(prev => prev.filter(p => p.id !== photo.id));
+        setSavedPhotos(prev => prev.filter(p => p.photo_id !== photo.id));
       } else {
         console.error('Failed to delete selection');
       }

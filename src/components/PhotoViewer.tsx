@@ -28,10 +28,18 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photos, initialIndex, onClose
     };
   }, [onClose]);
 
+  const handleOnInit = (detail: any) => {
+    detail.instance.openGallery(initialIndex);
+  };
+
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.content} onClick={(e) => e.stopPropagation()}>
         <LightGallery
+          onInit={handleOnInit}
+          speed={500}
+          controls={true}
+          download={false}  // Добавляем эту строку для отключения кнопки загрузки
           plugins={[lgThumbnail, lgVideo, lgZoom]}
           dynamic
           dynamicEl={photos.map(photo => ({
@@ -40,6 +48,8 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photos, initialIndex, onClose
             subHtml: `<h4>${photo.alt}</h4>`,
           }))}
           index={initialIndex}
+          onAfterClose={onClose}
+          mode="lg-fade" // Add your preferred mode
         />
         <button className={styles.closeButton} onClick={onClose}>×</button>
       </div>

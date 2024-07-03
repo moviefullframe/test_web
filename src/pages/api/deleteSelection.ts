@@ -59,11 +59,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const [deleteFamilyPhotosResult]: [any, any] = await connection.execute(deleteFamilyPhotosQuery, [familyId, photoId]);
     console.log('[DELETE] Deleted from family_photos:', deleteFamilyPhotosResult);
 
-    const deletePhotoMappingsQuery = 'DELETE FROM photo_mappings WHERE id = ?';
-    console.log('Executing query:', deletePhotoMappingsQuery, [photoId]);
-    const [deletePhotoMappingsResult]: [any, any] = await connection.execute(deletePhotoMappingsQuery, [photoId]);
-    console.log('[DELETE] Deleted from photo_mappings:', deletePhotoMappingsResult);
-
     await connection.end();
     console.log('[DELETE] Connection closed');
 

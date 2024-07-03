@@ -84,9 +84,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const validPhotos = photos.filter(photo => photo !== null);
 
-    await connection.end();
 
     console.log('Final photos array:', validPhotos);
+
+
+    const [rows]: [any[], any] = await connection.execute(
+        `SELECT id AS photo_id FROM photo_mappings`
+    );
+
+    console.log('!!Rows fetched from photo_mappings:', rows);
+
+    if (rows.length > 0) {
+      const yandexIds = validPhotos.map(el => el.photo_id);
+      const dbIds = rows.map(el => el.photo_id);
+      for (const photoId of dbIds) {
+        if (!yandexIds.includes(photoId)) {
+          const deletePhotoMappingsQuery = 'DELETE FROM photo_mappings WHERE id = ?';
+          console.log('Executing query:', deletePhotoMappingsQuery, [photoId]);
+          const [deletePhotoMappingsResult]: [any, any] = await connection.execute(deletePhotoMappingsQuery, [photoId]);
+          console.log('[DELETE] Deleted from photo_mappings:', deletePhotoMappingsResult);
+        }
+      }
+    }
+
+
+
+      await connection.end();
+
 
     return res.status(200).json(validPhotos);
   } catch (error) {

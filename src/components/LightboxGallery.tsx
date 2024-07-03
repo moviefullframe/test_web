@@ -7,6 +7,7 @@ import 'lightgallery/css/lg-zoom.css';
 import lgThumbnail from 'lightgallery/plugins/thumbnail';
 import lgVideo from 'lightgallery/plugins/video';
 import lgZoom from 'lightgallery/plugins/zoom';
+import lgFullscreen from 'lightgallery/plugins/fullscreen'; // Импортируйте плагин
 import styles from '../app/Gallery.module.css';
 
 type Photo = {
@@ -37,6 +38,13 @@ const LightboxGallery: React.FC<LightboxGalleryProps> = ({ photos, initialIndex,
 
   const handleOnInit = (detail: any) => {
     detail.instance.openGallery(initialIndex);
+    // Удаляем кнопку скачивания после инициализации галереи
+    setTimeout(() => {
+      const downloadButton = document.querySelector('.lg-download');
+      if (downloadButton) {
+        downloadButton.remove();
+      }
+    }, 100);
   };
 
   return (
@@ -45,7 +53,7 @@ const LightboxGallery: React.FC<LightboxGalleryProps> = ({ photos, initialIndex,
       <LightGallery
         onInit={handleOnInit}
         speed={500}
-        plugins={[lgThumbnail, lgVideo, lgZoom]}
+        plugins={[lgThumbnail, lgVideo, lgZoom, lgFullscreen]} // Добавьте плагин Fullscreen
         dynamic
         dynamicEl={photos.map((photo) => ({
           src: photo.src,
