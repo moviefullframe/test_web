@@ -9,13 +9,20 @@ import { SelectedOptions, Photo, User } from '../types';
 const defaultOptions = {
   lastName: '',
   photo10x15: 0,
+  photo15x21: 0,
   photo20x30: 0,
   photoInYearbook: false,
   additionalPhotos: false,
   vignette: false,
   photo10x15Name: '',
+  photo15x21Name: '',
   photo20x30Name: '',
   photoInAlbum: false,
+  allPhotosDigital: false,
+  portraitAlbum2: false,
+  portraitAlbum3: false,
+  singlePhotoDigital: false,
+  photoInCube: false,
 };
 
 const Gallery = () => {
@@ -35,7 +42,6 @@ const Gallery = () => {
       setUser(parsedUser);
       console.log('User loaded from localStorage:', parsedUser);
 
-      // Fetch class_id based on class_name
       const fetchClassId = async () => {
         try {
           const res = await axios.get(`/api/getClassId?class_name=${parsedUser.class_name}`);
@@ -110,12 +116,19 @@ const Gallery = () => {
               acc[item.photo_id] = {
                 lastName: item.family_name,
                 photo10x15: item.photo_size === '10x15' ? item.photo_count : 0,
+                photo15x21: item.photo_size === '15x21' ? item.photo_count : 0,
                 photo20x30: item.photo_size === '20x30' ? item.photo_count : 0,
                 photoInYearbook: item.photo_chronicle,
                 vignette: item.vignette,
                 photo10x15Name: item.photo_size === '10x15' ? item.file_name : '',
+                photo15x21Name: item.photo_size === '15x21' ? item.file_name : '',
                 photo20x30Name: item.photo_size === '20x30' ? item.file_name : '',
                 photoInAlbum: item.album,
+                allPhotosDigital: item.all_photos_digital,
+                portraitAlbum2: item.portrait_album_2,
+                portraitAlbum3: item.portrait_album_3,
+                singlePhotoDigital: item.single_photo_digital,
+                photoInCube: item.photo_in_cube,
               };
               return acc;
             }, {});
@@ -152,41 +165,46 @@ const Gallery = () => {
         class_id: user.class_id,
         family_name: options.lastName,
         photo_id: selectedPhoto.id,
+        photo_size: options.photo10x15 > 0 ? '10x15' : options.photo15x21 > 0 ? '15x21' : '20x30',
+        photo_count: options.photo10x15 > 0 ? options.photo10x15 : options.photo15x21 > 0 ? options.photo15x21 : options.photo20x30,
         photo_chronicle: options.photoInYearbook ? 1 : 0,
         vignette: options.vignette ? 1 : 0,
-        photo_10x15_count: options.photo10x15,
-        photo_20x30_count: options.photo20x30,
-        photo10x15Name: selectedPhoto.alt,
-        photo20x30Name: selectedPhoto.alt,
         album: options.photoInAlbum ? 1 : 0,
+        all_photos_digital: options.allPhotosDigital ? 1 : 0,
+        portrait_album_2: options.portraitAlbum2 ? 1 : 0,
+        portrait_album_3: options.portraitAlbum3 ? 1 : 0,
+        single_photo_digital: options.singlePhotoDigital ? 1 : 0,
+        photo_in_cube: options.photoInCube ? 1 : 0,
+        file_name_id: selectedPhoto.id
       };
+  
       console.log('Payload to be sent to server:', payload);
-
+  
       const res = await axios.post('/api/saveSelection', payload);
-
-      if (res.status === 200) {
-        console.log('Выбор успешно сохранен');
-        setSelectedOptionsMap(prev => ({
-          ...prev,
-          [selectedPhoto.id]: options,
-        }));
-        setSavedPhotos(prev => [...prev, selectedPhoto]);
-      } else {
+  
+      if (res.status !== 200) {
         console.error('Ошибка при сохранении выбора');
       }
+  
+      setSelectedOptionsMap(prev => ({
+        ...prev,
+        [selectedPhoto.id]: options,
+      }));
+      setSavedPhotos(prev => [...prev, selectedPhoto]);
+      console.log('Выбор успешно сохранен');
     } catch (error) {
       console.error('Ошибка при сохранении выбора', error);
     }
     setSelectedPhoto(null);
   };
-
+  
   const handleDeleteSelection = async (photo: Photo) => {
     const options = selectedOptionsMap[photo.id];
     if (!options || !options.lastName) {
       alert('Пожалуйста, выберите фамилию.');
       return;
     }
-
+  
     try {
       const res = await axios.delete('/api/deleteSelection', {
         data: {
@@ -195,7 +213,7 @@ const Gallery = () => {
           photo_id: photo.id,
         },
       });
-
+  
       if (res.status === 200) {
         console.log('Selection deleted successfully');
         setSelectedOptionsMap(prev => {
@@ -203,7 +221,7 @@ const Gallery = () => {
           delete newMap[photo.id];
           return newMap;
         });
-        setSavedPhotos(prev => prev.filter(p => p.photo_id !== photo.id));
+        setSavedPhotos(prev => prev.filter(p => p.id !== photo.id));
       } else {
         console.error('Failed to delete selection');
       }
@@ -211,6 +229,7 @@ const Gallery = () => {
       console.error('Error deleting selection:', error);
     }
   };
+  
 
   useEffect(() => {
     // const saveUserSelection = async () => {
@@ -295,7 +314,8 @@ const Gallery = () => {
       )}
       {selectedPhoto && (
         <PhotoModal
-          className={user.class_name}
+          class_id={user.class_id}
+          class_name={user.class_name }
           selectedOptions={selectedOptionsMap[selectedPhoto.id] || defaultOptions}
           handleConfirmSelection={handleConfirmSelection}
           closeModal={closeModal}

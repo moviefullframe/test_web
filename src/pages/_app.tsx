@@ -1,5 +1,6 @@
 import '../app/globals.css';
 import '../app/Gallery.module.css';
+import 'tailwindcss/tailwind.css';
 import '../components/PhotoViewer.module.css';
 import '../components/PhotoViewer.tsx';
 import Header from '../components/Header';

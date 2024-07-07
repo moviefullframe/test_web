@@ -8,14 +8,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return res.status(405).json({ message: 'Only GET requests allowed' });
   }
 
-  const { classId } = req.query;
+  const { class_id } = req.query;
 
-  if (!classId) {
+  if (!class_id) {
     return res.status(400).json({ message: 'Class ID is required' });
   }
 
   try {
-    console.log(`Connecting to database with classId: ${classId}`);
+    console.log(`Connecting to database with class_id: ${class_id}`);
     const connection = await mysql.createConnection({
       host: 'photofomin26.synology.me',
       user: 'Admin_Oleg',
@@ -26,8 +26,8 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
     // Получаем данные класса и школы
     const [classRows] = await connection.execute<any[]>(
-      'SELECT id, school_name FROM classes WHERE class_name = ?',
-      [classId]
+      'SELECT id, school_name FROM classes WHERE id = ?',
+      [class_id]
     );
 
     if (!Array.isArray(classRows) || classRows.length === 0) {
@@ -59,7 +59,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       }));
 
       return res.status(200).json({
-        classId: classData.id,
+        class_id: classData.id,
         schoolName: classData.school_name,
         families: families,
       });

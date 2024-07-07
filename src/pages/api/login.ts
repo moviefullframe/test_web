@@ -18,7 +18,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
 
     const [rows] = await connection.execute(
-      'SELECT * FROM classes WHERE login = ? AND password = ?',
+      'SELECT c.*, a.type_name FROM classes c LEFT JOIN account_types a ON c.account_type_id = a.id WHERE login = ? AND password = ?',
       [login, password]
     );
 

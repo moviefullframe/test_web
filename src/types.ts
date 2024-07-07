@@ -1,13 +1,20 @@
 export type SelectedOptions = {
   lastName: string;
   photo10x15: number;
+  photo15x21: number;
   photo20x30: number;
   photoInYearbook: boolean;
   additionalPhotos: boolean;
   vignette: boolean;
+  photoInAlbum: boolean;
+  allPhotosDigital: boolean;
+  portraitAlbum2: boolean;
+  portraitAlbum3: boolean;
+  singlePhotoDigital: boolean;
+  photoInCube: boolean;
   photo10x15Name: string;
   photo20x30Name: string;
-  photoInAlbum: boolean;
+  photo15x21Name: string;
 };
 
 export type Family = {
@@ -30,7 +37,6 @@ export type Photo = {
   photo_id?: number;
   additionalPhotos?: string[];
 };
-
 
 export type Order = {
   lastName: string;
@@ -62,9 +68,20 @@ export type FamilyPhoto = {
   album: boolean;
   file_name_id: number | null;
   class_id: number;
+  all_photos_digital: boolean;
+  portrait_album_2: boolean;
+  portrait_album_3: boolean;
+  single_photo_digital: boolean;
+  photo_in_cube: boolean;
 };
 
 export type FileName = {
   id: number;
   file_name: string;
 };
+
+export type AccountType = {
+  id: number;
+  type_name: string;
+};
+
