@@ -11,6 +11,7 @@ type PhotoViewerProps = {
   photos: { src: string; alt: string }[];
   initialIndex: number;
   onClose: () => void;
+  handleSelectPhoto: (photo: { src: string; alt: string }) => void;
 };
 
 const PhotoViewer: React.FC<PhotoViewerProps> = ({ photos, initialIndex, onClose }) => {

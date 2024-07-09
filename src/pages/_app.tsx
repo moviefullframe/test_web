@@ -21,6 +21,18 @@ function MyApp({ Component, pageProps }: AppProps) {
     }
   }, [router]);
 
+  useEffect(() => {
+    const handleContextMenu = (event: MouseEvent) => {
+      event.preventDefault();
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+    };
+  }, []);
+
   return (
     <>
       <Header />

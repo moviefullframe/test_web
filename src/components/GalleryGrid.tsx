@@ -1,7 +1,29 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Swal from 'sweetalert2';
+import 'lazysizes';
+import 'lazysizes/plugins/parent-fit/ls.parent-fit';
 import styles from '../app/Gallery.module.css';
 import { Photo, SelectedOptions } from '../types';
+
+declare global {
+  interface Window {
+    lazySizesConfig: {
+      expand?: number;
+      expFactor?: number;
+      loadMode?: number;
+      lazyClass?: string;
+      loadingClass?: string;
+      loadedClass?: string;
+      preloadClass?: string;
+      errorClass?: string;
+      autosizesClass?: string;
+      srcAttr?: string;
+      srcsetAttr?: string;
+      sizesAttr?: string;
+      [key: string]: any;
+    };
+  }
+}
 
 type GalleryGridProps = {
   photos: Photo[];
@@ -21,6 +43,61 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
   handleDeleteSelection,
   openLightbox,
 }) => {
+  const observer = useRef<IntersectionObserver>();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.lazySizesConfig = window.lazySizesConfig || {};
+      window.lazySizesConfig.expand = 300;
+      window.lazySizesConfig.expFactor = 1.2;
+      window.lazySizesConfig.loadMode = 2;
+      window.lazySizesConfig.lazyClass = 'lazyload';
+      window.lazySizesConfig.loadingClass = 'loading';
+      window.lazySizesConfig.loadedClass = 'loaded';
+      window.lazySizesConfig.errorClass = 'error';
+      window.lazySizesConfig.srcAttr = 'data-src';
+      window.lazySizesConfig.srcsetAttr = 'data-srcset';
+      window.lazySizesConfig.sizesAttr = 'data-sizes';
+    }
+
+    const obsOptions = {
+      root: null,
+      rootMargin: '100px',
+      threshold: 0.1,
+    };
+
+    const preloadImage = (img: HTMLImageElement) => {
+      const src = img.getAttribute('data-src');
+      if (!src) {
+        return;
+      }
+      img.src = src;
+    };
+
+    observer.current = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          preloadImage(entry.target as HTMLImageElement);
+          obs.unobserve(entry.target);
+        }
+      });
+    }, obsOptions);
+
+    const images = document.querySelectorAll('.lazyload');
+    images.forEach(image => {
+      observer.current?.observe(image);
+    });
+
+    setLoading(false);
+
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
+      }
+    };
+  }, []);
+
   function handleClick(photo: Photo) {
     if (isSelected(photo)) {
       Swal.fire({
@@ -53,58 +130,68 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
 
   return (
     <div className={styles.galleryGrid}>
-      {photos.map((photo, index) => {
-        const selectedOptions = selectedOptionsMap[photo.id] || {
-          lastName: '',
-          photo10x15: 0,
-          photo15x21: 0,
-          photo20x30: 0,
-          photoInYearbook: false,
-          additionalPhotos: false,
-          vignette: false,
-          photo10x15Name: '',
-          photo15x21Name: '',
-          photo20x30Name: '',
-          photoInAlbum: false,
-          allPhotosDigital: false,
-          portraitAlbum2: false,
-          portraitAlbum3: false,
-          singlePhotoDigital: false,
-          photoInCube: false,
-        };
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        photos.map((photo, index) => {
+          const selectedOptions = selectedOptionsMap[photo.id] || {
+            lastName: '',
+            photo10x15: 0,
+            photo15x21: 0,
+            photo20x30: 0,
+            photoInYearbook: false,
+            additionalPhotos: false,
+            vignette: false,
+            photo10x15Name: '',
+            photo15x21Name: '',
+            photo20x30Name: '',
+            photoInAlbum: false,
+            allPhotosDigital: false,
+            portraitAlbum2: false,
+            portraitAlbum3: false,
+            singlePhotoDigital: false,
+            photoInCube: false,
+          };
 
-        return (
-          <div key={photo.id || `photo-${index}`} className={`${styles.galleryItem} ${isSelected(photo) ? styles.selected : ''}`}>
-            <a href={photo.src} data-sub-html={photo.alt} onClick={(e) => { e.preventDefault(); openLightbox(index); }}>
-              <img src={photo.src} alt={photo.alt} />
-            </a>
-            <button
-              className={styles.button}
-              onClick={() => handleClick(photo)}
-            >
-              {isSelected(photo) ? 'Отменить выбор' : 'Выбрать фото'}
-            </button>
-            {isSelected(photo) && (
-              <div className={styles.selectedOverlay}>
-                <div className={styles.selectedTextContainer}>
-                  <div className="title">ЗАКАЗАНО: {selectedOptions.lastName}</div>
-                  {selectedOptions.photoInYearbook && <div className="detailItem">✔ Фото в летопись</div>}
-                  {selectedOptions.vignette && <div className="detailItem">✔ ВИНЬЕТКА</div>}
-                  {selectedOptions.photoInAlbum && <div className="detailItem">✔ Фото в альбом</div>}
-                  {!!selectedOptions.photo10x15 && <div className="detailItem">✔ Доп фото 10x15 {selectedOptions.photo10x15}шт</div>}
-                  {!!selectedOptions.photo15x21 && <div className="detailItem">✔ Доп фото 15x21 {selectedOptions.photo15x21}шт</div>}
-                  {!!selectedOptions.photo20x30 && <div className="detailItem">✔ Доп фото 20x30 {selectedOptions.photo20x30}шт</div>}
-                  {selectedOptions.allPhotosDigital && <div className="detailItem">✔ Все фото в электронном виде</div>}
-                  {selectedOptions.portraitAlbum2 && <div className="detailItem">✔ Портрет в альбом 2</div>}
-                  {selectedOptions.portraitAlbum3 && <div className="detailItem">✔ Портрет в альбом 3</div>}
-                  {selectedOptions.singlePhotoDigital && <div className="detailItem">✔ 1 фото в электронном виде</div>}
-                  {selectedOptions.photoInCube && <div className="detailItem">✔ Фото в кубике</div>}
+          return (
+            <div key={photo.id || `photo-${index}`} className={`${styles.galleryItem} ${isSelected(photo) ? styles.selected : ''}`}>
+              <a href={photo.src} data-sub-html={photo.alt} onClick={(e) => { e.preventDefault(); openLightbox(index); }}>
+                <img
+                  data-src={photo.src}
+                  data-srcset={`${photo.src} 600w, ${photo.src} 1200w`}
+                  sizes="(max-width: 600px) 480px, 800px"
+                  alt={photo.alt}
+                  className="lazyload"
+                />
+              </a>
+              <button
+                className={styles.button}
+                onClick={() => handleClick(photo)}
+              >
+                {isSelected(photo) ? 'Отменить выбор' : 'Выбрать фото'}
+              </button>
+              {isSelected(photo) && (
+                <div className={styles.selectedOverlay}>
+                  <div className={styles.selectedTextContainer}>
+                    <div className="title">ЗАКАЗАНО: {selectedOptions.lastName}</div>
+                    {selectedOptions.photoInYearbook && <div className="detailItem">✔ Фото в летопись</div>}
+                    {selectedOptions.vignette && <div className="detailItem">✔ ВИНЬЕТКА</div>}
+                    {selectedOptions.photoInAlbum && <div className="detailItem">✔ Фото в альбом</div>}
+                    {!!selectedOptions.photo10x15 && <div className="detailItem">✔ Доп фото 10x15 {selectedOptions.photo10x15}шт</div>}
+                    {!!selectedOptions.photo15x21 && <div className="detailItem">✔ Доп фото 15x21 {selectedOptions.photo15x21}шт</div>}
+                    {!!selectedOptions.photo20x30 && <div className="detailItem">✔ Доп фото 20x30 {selectedOptions.photo20x30}шт</div>}
+                    {selectedOptions.allPhotosDigital && <div className="detailItem">✔ Все фото в электронном виде</div>}
+                    {selectedOptions.portraitAlbum2 && <div className="detailItem">✔ Портрет в альбом 2</div>}
+                    {selectedOptions.portraitAlbum3 && <div className="detailItem">✔ Портрет в альбом 3</div>}
+                    {selectedOptions.singlePhotoDigital && <div className="detailItem">✔ 1 фото в электронном виде</div>}
+                    {selectedOptions.photoInCube && <div className="detailItem">✔ Фото в кубике</div>}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        );
-      })}
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 };

@@ -1,3 +1,4 @@
+/* Общие стили */
 .galleryContainer {
   padding: 20px;
   text-align: center;
@@ -6,10 +7,9 @@
 
 .galleryGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); /* 2 photos per row on smaller screens */
   gap: 20px;
   padding: 20px;
-  justify-items: center; /* Center items horizontally */
+  justify-items: center;
 }
 
 .galleryItem {
@@ -19,7 +19,7 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   background: #fff;
   width: 100%;
-  max-width: 300px; /* Ensure photos have a maximum width */
+  max-width: 300px;
 }
 
 .galleryItem img {
@@ -117,8 +117,10 @@
   text-align: left;
   color: #000;
   max-width: 500px;
-  width: 100%;
+  width: 90%;
   position: relative;
+  overflow-y: auto;
+  max-height: 90%;
 }
 
 .closeButton {
@@ -132,7 +134,7 @@
   color: #333;
 }
 
-.button {
+.button, .modal .cancelButton {
   background-color: #555;
   border: none;
   padding: 10px;
@@ -143,7 +145,7 @@
   color: #fff;
 }
 
-.button:hover {
+.button:hover, .modal .cancelButton:hover {
   background-color: #444;
 }
 
@@ -152,7 +154,7 @@
   margin-bottom: 10px;
 }
 
-.formLabel input, .formLabel select {
+.formLabel input, .formLabel select, .checkboxLabel input {
   margin-left: 10px;
   padding: 5px;
   border-radius: 5px;
@@ -163,10 +165,6 @@
   display: flex;
   align-items: center;
   margin-bottom: 10px;
-}
-
-.checkboxLabel input {
-  margin-right: 10px;
 }
 
 .lg-container {
@@ -187,14 +185,8 @@
 }
 
 .closeButton {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: none;
-  border: none;
   font-size: 30px;
   color: #fff;
-  cursor: pointer;
 }
 
 /* Hide the download button */
@@ -205,15 +197,16 @@
 /* Адаптивные стили */
 @media (min-width: 769px) {
   .galleryGrid {
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); /* 2 photos per row on larger screens */
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 }
 
 @media (min-width: 1024px) {
   .galleryGrid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Larger photos on desktop */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   }
 }
+
 .modal .buttonContainer {
   display: flex;
   justify-content: space-between;
@@ -222,15 +215,26 @@
 
 .modal .cancelButton {
   background-color: #f44336;
-  border: none;
-  padding: 10px;
-  text-transform: uppercase;
-  cursor: pointer;
-  border-radius: 5px;
-  color: #fff;
-  font-size: 12px;
 }
 
 .modal .cancelButton:hover {
   background-color: #d32f2f;
+}
+
+.disabledButton {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.disabledButton:hover {
+  background-color: #ccc;
+}
+
+.lazyload {
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.lazyloaded {
+  opacity: 1;
 }

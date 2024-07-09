@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useForm, SubmitHandler } from 'react-hook-form';
-import styles from '../app/Gallery.module.css'; // Подключаем существующий CSS файл
+import styles from '../app/Gallery.module.css';
 import { SelectedOptions, Family, AccountType, Photo } from '../types';
 
 interface PhotoModalProps {
-  class_id: number 
+  class_id: number;
   class_name: string;
   selectedOptions: SelectedOptions;
   handleConfirmSelection: (data: SelectedOptions) => void;
   closeModal: () => void;
   selectedPhoto: Photo;
+  savedPhotos: Photo[];
 }
 
 const PhotoModal: React.FC<PhotoModalProps> = ({
@@ -19,16 +20,16 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
   selectedOptions,
   handleConfirmSelection,
   closeModal,
-  selectedPhoto
+  selectedPhoto,
+  savedPhotos,
 }) => {
   const [families, setFamilies] = useState<Family[]>([]);
   const [accountType, setAccountType] = useState<AccountType | null>(null);
-  const { register, handleSubmit, formState: { errors } } = useForm<SelectedOptions>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<SelectedOptions>({
     defaultValues: selectedOptions,
   });
 
-
-  
+  const [yearbookPhotoDisabled, setYearbookPhotoDisabled] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchFamiliesAndAccountType = async () => {
@@ -37,9 +38,6 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
           axios.get(`/api/families`, { params: { class_id } }),
           axios.get(`/api/accountType`, { params: { class_id } })
         ]);
-        console.log('Families fetched:', familiesRes.data.families); // Лог для отладки
-        console.log('Account type fetched:', accountTypeRes.data.accountType); // Лог для отладки
-
         setFamilies(familiesRes.data.families);
         setAccountType(accountTypeRes.data.accountType);
       } catch (error) {
@@ -48,11 +46,48 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
     };
 
     fetchFamiliesAndAccountType();
-  }, [class_name]);
+  }, [class_name, class_id]);
+
+  useEffect(() => {
+    const selectedPhotoInYearbook = savedPhotos.find(photo => photo.selectedOptions?.photoInYearbook && photo.selectedOptions?.lastName === selectedOptions.lastName);
+    setYearbookPhotoDisabled(selectedPhotoInYearbook !== undefined && selectedPhotoInYearbook.id !== selectedPhoto.id);
+  }, [savedPhotos, selectedOptions.lastName, selectedPhoto.id]);
 
   const onSubmit: SubmitHandler<SelectedOptions> = async (data) => {
     handleConfirmSelection(data);
   };
+
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>, name: keyof SelectedOptions) => {
+    const value = e.target.value.replace(/^0+(?!$)/, '');
+    setValue(name, value === '' ? 0 : parseInt(value, 10));
+  };
+
+  const commonBlocks = <>
+    <label className={styles.formLabel}>
+      Заказать фото 10x15
+      <input
+        type="number"
+        {...register('photo10x15', { valueAsNumber: true })}
+        onChange={(e) => handleNumberChange(e, 'photo10x15')}
+      />
+    </label>
+    <label className={styles.formLabel}>
+      Заказать фото 15x21
+      <input
+        type="number"
+        {...register('photo15x21', { valueAsNumber: true })}
+        onChange={(e) => handleNumberChange(e, 'photo15x21')}
+      />
+    </label>
+    <label className={styles.formLabel}>
+      Заказать фото 20x30
+      <input
+        type="number"
+        {...register('photo20x30', { valueAsNumber: true })}
+        onChange={(e) => handleNumberChange(e, 'photo20x30')}
+      />
+    </label>
+  </>
 
   return (
     <div className={styles.modal}>
@@ -73,20 +108,13 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
           {accountType && accountType.type_name === 'летопись' && (
             <>
               <label className={styles.checkboxLabel}>
-                <input type="checkbox" {...register('photoInYearbook')} /> Фото в летопись
+                <input
+                  type="checkbox"
+                  {...register('photoInYearbook')}
+                  disabled={yearbookPhotoDisabled}
+                /> Фото в летопись
               </label>
-              <label className={styles.formLabel}>
-                Заказать фото 10x15
-                <input type="number" {...register('photo10x15', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 15x21
-                <input type="number" {...register('photo15x21', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 20x30
-                <input type="number" {...register('photo20x30', { valueAsNumber: true })} />
-              </label>
+              {commonBlocks}
             </>
           )}
           {accountType && accountType.type_name === 'альбом 1 портрет' && (
@@ -102,18 +130,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 1 фото в электронном виде
                 <input type="checkbox" {...register('singlePhotoDigital')} />
               </label>
-              <label className={styles.formLabel}>
-                Заказать фото 10x15
-                <input type="number" {...register('photo10x15', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 15x21
-                <input type="number" {...register('photo15x21', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 20x30
-                <input type="number" {...register('photo20x30', { valueAsNumber: true })} />
-              </label>
+              {commonBlocks}
             </>
           )}
           {accountType && accountType.type_name === 'альбом 2 портрета' && (
@@ -132,18 +149,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 1 фото в электронном виде
                 <input type="checkbox" {...register('singlePhotoDigital')} />
               </label>
-              <label className={styles.formLabel}>
-                Заказать фото 10x15
-                <input type="number" {...register('photo10x15', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 15x21
-                <input type="number" {...register('photo15x21', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 20x30
-                <input type="number" {...register('photo20x30', { valueAsNumber: true })} />
-              </label>
+              {commonBlocks}
             </>
           )}
           {accountType && accountType.type_name === 'альбом 3 портрета' && (
@@ -165,18 +171,7 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 1 фото в электронном виде
                 <input type="checkbox" {...register('singlePhotoDigital')} />
               </label>
-              <label className={styles.formLabel}>
-                Заказать фото 10x15
-                <input type="number" {...register('photo10x15', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 15x21
-                <input type="number" {...register('photo15x21', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 20x30
-                <input type="number" {...register('photo20x30', { valueAsNumber: true })} />
-              </label>
+              {commonBlocks}
             </>
           )}
           {accountType && accountType.type_name === 'альбом кубики' && (
@@ -194,24 +189,9 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 <input type="checkbox" {...register('allPhotosDigital')} /> Все фото в электронном виде
               </label>
               <label className={styles.formLabel}>
-                <input type="checkbox"{...register('singlePhotoDigital')} /> 1 фото в электронном виде
+                <input type="checkbox" {...register('singlePhotoDigital')} /> 1 фото в электронном виде
               </label>
-
-              <label className={styles.formLabel}>
-                Заказать фото 10x15
-                <input type="number" {...register('photo10x15', { valueAsNumber: true })} />
-              </label>
-
-              <label className={styles.formLabel}>
-                Заказать фото 15x21
-                <input type="number" {...register('photo15x21', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 20x30
-                <input type="number" {...register('photo20x30', { valueAsNumber: true })} />
-              </label>
-
-
+              {commonBlocks}
             </>
           )}
           {accountType && accountType.type_name === 'альбом выбор групп' && (
@@ -233,28 +213,16 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
                 1 фото в электронном виде
                 <input type="checkbox" {...register('singlePhotoDigital')} />
               </label>
-              <label className={styles.formLabel}>
-                Заказать фото 10x15
-                <input type="number" {...register('photo10x15', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 15x21
-                <input type="number" {...register('photo15x21', { valueAsNumber: true })} />
-              </label>
-              <label className={styles.formLabel}>
-                Заказать фото 20x30
-                <input type="number" {...register('photo20x30', { valueAsNumber: true })} />
-              </label>
+              {commonBlocks}
             </>
           )}
           <div className={styles.buttonContainer}>
-            <button className={styles.button} type="submit">Подтвердите выбор</button>
+            <button className={`${styles.button} ${yearbookPhotoDisabled ? styles.disabledButton : ''}`} type="submit" disabled={yearbookPhotoDisabled}>Подтвердите выбор</button>
             <button className={styles.cancelButton} type="button" onClick={closeModal}>Отменить выбор</button>
           </div>
         </form>
       </div>
     </div>
-    
   );
 };
 

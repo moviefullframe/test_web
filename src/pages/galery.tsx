@@ -71,6 +71,7 @@ const Gallery = () => {
             params: {
               bucketName: 'testphoto2',
               folderPath,
+              classId: user.class_id,
             },
           });
 
@@ -100,7 +101,7 @@ const Gallery = () => {
     };
 
     fetchPhotos();
-  }, [user.school_name, user.class_name]);
+  }, [user.school_name, user.class_name, user.class_id]);
 
   useEffect(() => {
     const fetchSavedPhotos = async () => {
@@ -125,9 +126,9 @@ const Gallery = () => {
                 photo20x30Name: item.photo_size === '20x30' ? item.file_name : '',
                 photoInAlbum: item.album,
                 allPhotosDigital: item.all_photos_digital,
-                portraitAlbum2: item.portrait_album_2,
-                portraitAlbum3: item.portrait_album_3,
-                singlePhotoDigital: item.single_photo_digital,
+                portrait_album_2: item.portrait_album_2,
+                portrait_album_3: item.portrait_album_3,
+                single_photo_digital: item.single_photo_digital,
                 photoInCube: item.photo_in_cube,
               };
               return acc;
@@ -177,34 +178,34 @@ const Gallery = () => {
         photo_in_cube: options.photoInCube ? 1 : 0,
         file_name_id: selectedPhoto.id
       };
-  
+
       console.log('Payload to be sent to server:', payload);
-  
+
       const res = await axios.post('/api/saveSelection', payload);
-  
+
       if (res.status !== 200) {
         console.error('Ошибка при сохранении выбора');
       }
-  
+
       setSelectedOptionsMap(prev => ({
         ...prev,
         [selectedPhoto.id]: options,
       }));
-      setSavedPhotos(prev => [...prev, selectedPhoto]);
+      setSavedPhotos(prev => [...prev, { ...selectedPhoto, selectedOptions: options }]);
       console.log('Выбор успешно сохранен');
     } catch (error) {
       console.error('Ошибка при сохранении выбора', error);
     }
     setSelectedPhoto(null);
   };
-  
+
   const handleDeleteSelection = async (photo: Photo) => {
     const options = selectedOptionsMap[photo.id];
     if (!options || !options.lastName) {
       alert('Пожалуйста, выберите фамилию.');
       return;
     }
-  
+
     try {
       const res = await axios.delete('/api/deleteSelection', {
         data: {
@@ -213,7 +214,7 @@ const Gallery = () => {
           photo_id: photo.id,
         },
       });
-  
+
       if (res.status === 200) {
         console.log('Selection deleted successfully');
         setSelectedOptionsMap(prev => {
@@ -229,31 +230,6 @@ const Gallery = () => {
       console.error('Error deleting selection:', error);
     }
   };
-  
-
-  useEffect(() => {
-    // const saveUserSelection = async () => {
-    //   if (savedPhotos.length > 0 && Object.keys(selectedOptionsMap).length > 0) {
-    //     try {
-    //       const res = await axios.post('/api/saveUserSelection', {
-    //         class_id: user.class_id,
-    //         selectedPhotos: savedPhotos,
-    //         selectedOptionsMap,
-    //       });
-
-    //       if (res.status === 200) {
-    //         console.log('User selection saved successfully.');
-    //       } else {
-    //         console.error('Failed to save user selection');
-    //       }
-    //     } catch (error) {
-    //       console.error('Error saving user selection:', error);
-    //     }
-    //   }
-    // };
-
-    // saveUserSelection();
-  }, [savedPhotos, selectedOptionsMap, user.class_id]);
 
   const closeModal = () => {
     console.log('Closing modal');
@@ -262,11 +238,14 @@ const Gallery = () => {
 
   const openLightbox = (index: number) => {
     setInitialIndex(index);
-    setShowLightbox(true);
+    setShowLightbox(false);  // Reset state
+    setTimeout(() => setShowLightbox(true), 0);  // Open lightbox after state reset
+    window.location.hash = `lg=${index}`;
   };
 
   const closeLightbox = () => {
     setShowLightbox(false);
+    window.history.pushState("", document.title, window.location.pathname + window.location.search);
   };
 
   const handleSelectedOptionsChange = (photoId: number, options: SelectedOptions) => {
@@ -315,11 +294,12 @@ const Gallery = () => {
       {selectedPhoto && (
         <PhotoModal
           class_id={user.class_id}
-          class_name={user.class_name }
+          class_name={user.class_name}
           selectedOptions={selectedOptionsMap[selectedPhoto.id] || defaultOptions}
           handleConfirmSelection={handleConfirmSelection}
           closeModal={closeModal}
           selectedPhoto={selectedPhoto}
+          savedPhotos={savedPhotos} // Передаем сохраненные фото
         />
       )}
     </div>
