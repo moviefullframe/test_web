@@ -1,10 +1,8 @@
 import React, { useEffect } from 'react';
 import LightGallery from 'lightgallery/react';
 import 'lightgallery/css/lightgallery.css';
-import 'lightgallery/css/lg-thumbnail.css';
 import 'lightgallery/css/lg-video.css';
 import 'lightgallery/css/lg-zoom.css';
-import lgThumbnail from 'lightgallery/plugins/thumbnail';
 import lgVideo from 'lightgallery/plugins/video';
 import lgZoom from 'lightgallery/plugins/zoom';
 import styles from './PhotoViewer.module.css';
@@ -40,7 +38,7 @@ const PhotoViewer: React.FC<PhotoViewerProps> = ({ photos, initialIndex, onClose
           speed={500}
           controls={true}
           download={false}  // Добавляем эту строку для отключения кнопки загрузки
-          plugins={[lgThumbnail, lgVideo, lgZoom]}
+          plugins={[lgVideo, lgZoom]}
           dynamic
           dynamicEl={photos.map(photo => ({
             src: photo.src,

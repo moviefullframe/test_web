@@ -1,14 +1,12 @@
 import React, { useEffect } from 'react';
 import LightGallery from 'lightgallery/react';
 import 'lightgallery/css/lightgallery.css';
-import 'lightgallery/css/lg-thumbnail.css';
 import 'lightgallery/css/lg-video.css';
 import 'lightgallery/css/lg-zoom.css';
-import lgThumbnail from 'lightgallery/plugins/thumbnail';
 import lgVideo from 'lightgallery/plugins/video';
 import lgZoom from 'lightgallery/plugins/zoom';
 import lgFullscreen from 'lightgallery/plugins/fullscreen'; // Импортируйте плагин
-import styles from '../app/Gallery.module.css';
+import styles from './PhotoViewer.module.css'; // Импортируйте правильный CSS файл
 
 type Photo = {
   id: number;
@@ -53,7 +51,7 @@ const LightboxGallery: React.FC<LightboxGalleryProps> = ({ photos, initialIndex,
       <LightGallery
         onInit={handleOnInit}
         speed={500}
-        plugins={[lgThumbnail, lgVideo, lgZoom, lgFullscreen]} // Добавьте плагин Fullscreen
+        plugins={[lgVideo, lgZoom, lgFullscreen]} // Убедитесь, что используемые плагины корректны
         dynamic
         dynamicEl={photos.map((photo) => ({
           src: photo.src,

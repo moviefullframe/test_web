@@ -97,10 +97,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const dbIds = rows.map(el => el.photo_id);
       for (const photoId of dbIds) {
         if (!yandexIds.includes(photoId)) {
-          const deletePhotoMappingsQuery = 'DELETE FROM photo_mappings WHERE id = ?';
-          console.log('Executing query:', deletePhotoMappingsQuery, [photoId]);
-          const [deletePhotoMappingsResult]: [any, any] = await connection.execute(deletePhotoMappingsQuery, [photoId]);
-          console.log('[DELETE] Deleted from photo_mappings:', deletePhotoMappingsResult);
+          try {
+            const deletePhotoMappingsQuery = 'DELETE FROM photo_mappings WHERE id = ?';
+            console.log('Executing query:', deletePhotoMappingsQuery, [photoId]);
+            const [deletePhotoMappingsResult]: [any, any] = await connection.execute(deletePhotoMappingsQuery, [photoId]);
+            console.log('[DELETE] Deleted from photo_mappings:', deletePhotoMappingsResult);
+          } catch (err: any) {
+            if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+              console.warn(`Skipping deletion of photo_id ${photoId} due to existing references.`);
+            } else {
+              throw err;
+            }
+          }
         }
       }
     }

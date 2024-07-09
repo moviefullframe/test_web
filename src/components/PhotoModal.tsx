@@ -184,6 +184,34 @@ const PhotoModal: React.FC<PhotoModalProps> = ({
               <label className={styles.checkboxLabel}>
                 <input type="checkbox" {...register('photoInCube')} /> Фото в кубике
               </label>
+              <label className={styles.checkboxLabel}>
+                <input type="checkbox" {...register('photoInAlbum')} /> Портрет в альбом
+              </label>
+              <label className={styles.checkboxLabel}>
+                <input type="checkbox" {...register('portraitAlbum2')} /> Портрет в альбом 2
+              </label>
+              <label className={styles.formLabel}>
+                <input type="checkbox" {...register('allPhotosDigital')} /> Все фото в электронном виде
+              </label>
+              <label className={styles.formLabel}>
+                <input type="checkbox"{...register('singlePhotoDigital')} /> 1 фото в электронном виде
+              </label>
+
+              <label className={styles.formLabel}>
+                Заказать фото 10x15
+                <input type="number" {...register('photo10x15', { valueAsNumber: true })} />
+              </label>
+
+              <label className={styles.formLabel}>
+                Заказать фото 15x21
+                <input type="number" {...register('photo15x21', { valueAsNumber: true })} />
+              </label>
+              <label className={styles.formLabel}>
+                Заказать фото 20x30
+                <input type="number" {...register('photo20x30', { valueAsNumber: true })} />
+              </label>
+
+
             </>
           )}
           {accountType && accountType.type_name === 'альбом выбор групп' && (

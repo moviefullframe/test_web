@@ -38,6 +38,7 @@ const Login = () => {
               type="text"
               placeholder="Логин"
               {...register('login', { required: true })}
+              style={{ color: '#000' }} // текст в поле ввода будет черным
             />
             {errors.login && <span className="error">Логин обязателен</span>}
           </div>
@@ -46,6 +47,7 @@ const Login = () => {
               type="password"
               placeholder="Пароль"
               {...register('password', { required: true })}
+              style={{ color: '#000' }} // текст в поле ввода будет черным
             />
             {errors.password && <span className="error">Пароль обязателен</span>}
           </div>
@@ -53,6 +55,63 @@ const Login = () => {
           {error && <p className="error">{error}</p>}
         </form>
       </div>
+      <style jsx>{`
+        .container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          background: url('/images/fon.jpg') no-repeat center center fixed;
+          background-size: cover;
+        }
+        .form-container {
+          background: rgba(0, 0, 0, 0.7);
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+          max-width: 400px;
+          width: 100%;
+          color: #fff;
+        }
+        h2 {
+          text-align: center;
+          margin-bottom: 20px;
+          color: #fff;
+        }
+        .input-field {
+          margin-bottom: 15px;
+        }
+        .input-field input {
+          width: calc(100% - 20px);
+          padding: 10px;
+          border: none;
+          border-radius: 5px;
+          margin-bottom: 5px;
+          background-color: #fff;
+        }
+        .error {
+          color: red;
+          font-size: 14px;
+          margin-top: -10px;
+          margin-bottom: 10px;
+        }
+        .btn-primary {
+          width: 100%;
+          padding: 10px;
+          border: none;
+          border-radius: 5px;
+          background-color: #555;
+          color: #fff;
+          cursor: pointer;
+          transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+          background-color: #333;
+        }
+        .btn-primary:focus {
+          outline: none;
+        }
+      `}</style>
     </div>
   );
 };
