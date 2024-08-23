@@ -32,17 +32,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   let data;
   try {
-    console.log('Sending request to Yandex Cloud with params:', params);
+    console.log('Отправка запроса в Yandex Cloud с параметрами:', params);
     data = await s3Client.send(new ListObjectsV2Command(params));
-    console.log('Received data from Yandex Cloud:', data);
-  } catch (error) {
+    console.log('Полученные данные из Yandex Cloud:', data);
+} catch (error) {
     if (error instanceof S3ServiceException && (error.name === 'NoSuchBucket' || error.name === 'NotFound')) {
-      console.error('No contents found in the specified bucket and folder path.');
-      data = { Contents: [] }; 
+        console.error('Содержимое не найдено в указанной папке.');
+        data = { Contents: [] }; 
     } else {
-      console.error('Error fetching folder contents from Yandex Cloud:', error);
-      return res.status(500).json({ message: 'Internal server error' });
+        console.error('Ошибка при получении содержимого папки из Yandex Cloud:', error);
+        return res.status(500).json({ message: 'Внутренняя ошибка сервера' });
     }
+
   }
 
   try {
@@ -132,6 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       };
 
       console.log('Processing photo:', photo);
+      
 
       const [rows]: [PhotoMapping[], any] = await connection.execute(
         `SELECT id AS photo_id FROM photo_mappings WHERE cloud_id = ?`,

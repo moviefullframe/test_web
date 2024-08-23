@@ -15,6 +15,7 @@ export type SelectedOptions = {
   photo10x15Name: string;
   photo20x30Name: string;
   photo15x21Name: string;
+  album_selection: number;
 };
 
 export type Family = {
@@ -32,17 +33,18 @@ export type Photo = {
   id: number;
   src: string;
   alt: string;
-  photoSize: string; // Добавляем свойство для размера фото
-  photoType: string; // Добавляем свойство для типа фото
-  photo_id?: number;
+  photoSize: string; // Добавлено свойство для размера фото
+  photoType: string; // Добавлено свойство для типа фото
+  photo_id: number; // Убрали опциональность
   additionalPhotos?: string[];
+  selectedOptions?: SelectedOptions; // Добавлено свойство selectedOptions
+  lastName?: string; 
 };
-
-export type Order = {
-  lastName: string;
+export interface Order {
+  id: string; // добавляем это свойство
+  family_name: string;
   photos: Photo[];
-};
-
+}
 export type User = {
   class_name: string;
   school_name: string;
@@ -61,8 +63,9 @@ export type FamilyPhoto = {
   id: number;
   family_id: number;
   photo_id: number;
-  photo_size: string;
-  photo_count: number;
+  photo_10x15: number;
+  photo_15x21: number;
+  photo_20x30: number;
   photo_chronicle: boolean;
   vignette: boolean;
   album: boolean;

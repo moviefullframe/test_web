@@ -30,13 +30,14 @@ const Header = () => {
 
   return (
     <header className="flex justify-between items-center p-2 bg-gray-800 text-white w-full">
-      {isGalleryPage && isAuthenticated && (
+      {isAuthenticated && (
         <nav className="flex justify-center items-center gap-2 w-full">
-          <a href="/" className="text-white text-xs md:text-base" onClick={handleDevelopmentClick}>Главная</a>
           <Link href="/galery" legacyBehavior>
             <a className="text-white text-xs md:text-base">Галерея</a>
           </Link>
-          <a href="/orders" className="text-white text-xs md:text-base" onClick={handleDevelopmentClick}>Заказы</a>
+          <Link href="/orders" legacyBehavior>
+            <a className="text-white text-xs md:text-base">Заказы</a>
+          </Link>
           <a href="/contacts" className="text-white text-xs md:text-base" onClick={handleDevelopmentClick}>Контакты</a>
           <button className="bg-red-500 border-none px-2 md:px-4 py-1 md:py-2 text-white cursor-pointer rounded text-xs md:text-base" onClick={handleLogout}>
             Выход

@@ -1,0 +1,117 @@
+/* Orders.css */
+.orders-container {
+  padding: 20px;
+  color: #000; /* Черный текст */
+}
+
+.orders-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.order-item {
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.order-item.expanded {
+  transform: scale(1.02);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.order-header {
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background-color 0.3s ease;
+}
+
+.order-header:hover {
+  background-color: rgba(255, 255, 255, 1);
+}
+
+.order-header h3 {
+  margin: 0;
+}
+
+.order-details {
+  padding: 10px;
+  border-top: 1px solid #ccc;
+  background-color: rgba(255, 255, 255, 0.9);
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.photo-item {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+  max-width: 200px;
+  text-align: center;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.photo-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.photo-img {
+  max-width: 100%;
+  border-radius: 5px;
+}
+
+.photo-item p, .photo-item ul {
+  margin: 5px 0;
+  color: #000; /* Черный текст */
+}
+
+.photo-item ul {
+  padding-left: 20px;
+}
+
+.photo-item li {
+  list-style-type: disc;
+  margin-left: 15px;
+}
+
+/* Медиазапросы для мобильных устройств */
+@media (max-width: 768px) {
+  .photos {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .photo-item {
+    max-width: 90%;
+    margin-bottom: 10px;
+  }
+
+  .order-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

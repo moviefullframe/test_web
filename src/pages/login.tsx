@@ -12,14 +12,16 @@ const Login = () => {
   const router = useRouter();
   const { register, handleSubmit, formState: { errors } } = useForm<IFormInput>();
   const [error, setError] = useState('');
-
   const onSubmit: SubmitHandler<IFormInput> = async (data) => {
     try {
       const res = await axios.post('/api/login', data);
       
       if (res.status === 200) {
+        console.log('User data:', res.data);
         localStorage.setItem('user', JSON.stringify(res.data));
-        router.push('/galery');
+        console.log('LocalStorage after setting user:', localStorage.getItem('user')); // Проверьте содержимое LocalStorage
+        
+        router.push('/PhotoIdentification');
       } else {
         setError('Неверный логин или пароль');
       }
@@ -27,6 +29,7 @@ const Login = () => {
       setError('Ошибка при авторизации');
     }
   };
+  
 
   return (
     <div className="container">
@@ -51,7 +54,7 @@ const Login = () => {
             />
             {errors.password && <span className="error">Пароль обязателен</span>}
           </div>
-          <button type="submit" className="btn-primary">LOGIN</button>
+          <button type="submit" className="btn-primary">Войти</button>
           {error && <p className="error">{error}</p>}
         </form>
       </div>

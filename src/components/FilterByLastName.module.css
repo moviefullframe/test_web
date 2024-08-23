@@ -1,0 +1,25 @@
+.selectContainer {
+    margin-bottom: 1rem;
+  }
+  
+  .label {
+    margin-right: 0.5rem;
+  }
+  
+  .customSelect {
+    appearance: none;
+    -webkit-appearance: none;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    font-size: 1rem;
+    color: #333; /* Цвет текста в раскрывающемся списке */
+  }
+  
+  /* Стиль для опций */
+  .customSelect option {
+    color: #333; /* Цвет текста опций */
+    background-color: #fff; /* Цвет фона опций */
+  }
+  

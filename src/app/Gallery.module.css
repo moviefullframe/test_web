@@ -189,6 +189,25 @@
   color: #fff;
 }
 
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  margin-right: 8px; /* Расстояние между чекбоксом и текстом */
+}
+
+
+
+
 /* Hide the download button */
 .lg-download {
   display: none !important;

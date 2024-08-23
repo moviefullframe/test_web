@@ -4,6 +4,9 @@ import 'lazysizes';
 import 'lazysizes/plugins/parent-fit/ls.parent-fit';
 import styles from '../app/Gallery.module.css';
 import { Photo, SelectedOptions } from '../types';
+import usePhotoStore from '../store/photoStore';
+import { shallow } from 'zustand/shallow';
+
 
 declare global {
   interface Window {
@@ -27,7 +30,6 @@ declare global {
 
 type GalleryGridProps = {
   photos: Photo[];
-  setSelectedPhotos: React.Dispatch<React.SetStateAction<Photo[]>>;
   savedPhotos: Photo[];
   selectedOptionsMap: { [key: number]: SelectedOptions };
   handleSelectPhoto: (photo: Photo) => void;
@@ -35,14 +37,24 @@ type GalleryGridProps = {
   openLightbox: (index: number) => void;
 };
 
-const GalleryGrid: React.FC<GalleryGridProps> = ({
-  photos,
-  savedPhotos,
-  selectedOptionsMap,
-  handleSelectPhoto,
-  handleDeleteSelection,
-  openLightbox,
-}) => {
+const accountTypeId = 1; // Предположим, это значение передается в ваш компонент
+
+const GalleryGrid: React.FC<GalleryGridProps> = ({ openLightbox }) => {
+  const { 
+    photos, 
+    selectedOptionsMap, 
+    setSelectedPhoto,
+    deleteSelectedOptions,
+  } = usePhotoStore(
+    state => ({
+      photos: state.photos,
+      selectedOptionsMap: state.selectedOptionsMap,
+      setSelectedPhoto: state.setSelectedPhoto,
+      deleteSelectedOptions: state.deleteSelectedOptions,
+    }),
+    shallow
+  );
+
   const observer = useRef<IntersectionObserver>();
   const [loading, setLoading] = useState(true);
 
@@ -99,6 +111,8 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
   }, []);
 
   function handleClick(photo: Photo) {
+    console.log('Click on photo:', photo);
+
     if (isSelected(photo)) {
       Swal.fire({
         title: 'Вы уверены?',
@@ -110,8 +124,9 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
         confirmButtonText: 'Да, отменить выбор',
         cancelButtonText: 'Отмена'
       }).then((result) => {
-        if (result.isConfirmed) {
-          handleDeleteSelection(photo);
+        if (result.isConfirmed && photo.photo_id !== undefined) {
+          console.log('Attempting to delete selection for photo ID:', photo.photo_id);
+          deleteSelectedOptions(photo.photo_id);
           Swal.fire(
             'Удалено!',
             'Ваш выбор был отменен.',
@@ -120,12 +135,22 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
         }
       })
     } else {
-      handleSelectPhoto(photo);
+      console.log('Selecting photo:', photo);
+      setSelectedPhoto(photo);
     }
   }
 
   function isSelected(photo: Photo): boolean {
-    return !!selectedOptionsMap[photo.id];
+    const actualPhotoId = Number(photo.photo_id);
+
+    if (actualPhotoId === undefined || actualPhotoId === null) {
+      console.warn(`photo_id is missing for photo with id: ${photo.id}`);
+      return false;
+    }
+
+    const isSelected = !!selectedOptionsMap[actualPhotoId];
+    console.log(`isSelected(${actualPhotoId}):`, isSelected);
+    return isSelected;
   }
 
   return (
@@ -134,17 +159,13 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
         <p>Loading...</p>
       ) : (
         photos.map((photo, index) => {
-          const selectedOptions = selectedOptionsMap[photo.id] || {
+          const selectedOptions = selectedOptionsMap[photo.photo_id !== undefined ? photo.photo_id : 0] || {
             lastName: '',
-            photo10x15: 0,
-            photo15x21: 0,
-            photo20x30: 0,
+            photo10x15: null,
+            photo15x21: null,
+            photo20x30: null,
             photoInYearbook: false,
-            additionalPhotos: false,
             vignette: false,
-            photo10x15Name: '',
-            photo15x21Name: '',
-            photo20x30Name: '',
             photoInAlbum: false,
             allPhotosDigital: false,
             portraitAlbum2: false,
@@ -176,10 +197,18 @@ const GalleryGrid: React.FC<GalleryGridProps> = ({
                     <div className="title">ЗАКАЗАНО: {selectedOptions.lastName}</div>
                     {selectedOptions.photoInYearbook && <div className="detailItem">✔ Фото в летопись</div>}
                     {selectedOptions.vignette && <div className="detailItem">✔ ВИНЬЕТКА</div>}
+                    {accountTypeId !== 1 && (
+                      <>
+                        {selectedOptions.album_selection === 1 ? 
+                          <div className="detailItem">✔ Беру альбом</div> : 
+                          <div className="detailItem">✖ Не беру альбом</div>
+                        }
+                      </>
+                    )}
                     {selectedOptions.photoInAlbum && <div className="detailItem">✔ Фото в альбом</div>}
-                    {!!selectedOptions.photo10x15 && <div className="detailItem">✔ Доп фото 10x15 {selectedOptions.photo10x15}шт</div>}
-                    {!!selectedOptions.photo15x21 && <div className="detailItem">✔ Доп фото 15x21 {selectedOptions.photo15x21}шт</div>}
-                    {!!selectedOptions.photo20x30 && <div className="detailItem">✔ Доп фото 20x30 {selectedOptions.photo20x30}шт</div>}
+                    {selectedOptions.photo10x15 > 0 && <div className="detailItem">✔ Доп фото 10x15 {selectedOptions.photo10x15}шт</div>}
+                    {selectedOptions.photo15x21 > 0 && <div className="detailItem">✔ Доп фото 15x21 {selectedOptions.photo15x21}шт</div>}
+                    {selectedOptions.photo20x30 > 0 && <div className="detailItem">✔ Доп фото 20x30 {selectedOptions.photo20x30}шт</div>}
                     {selectedOptions.allPhotosDigital && <div className="detailItem">✔ Все фото в электронном виде</div>}
                     {selectedOptions.portraitAlbum2 && <div className="detailItem">✔ Портрет в альбом 2</div>}
                     {selectedOptions.portraitAlbum3 && <div className="detailItem">✔ Портрет в альбом 3</div>}

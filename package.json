@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.608.0",
+    "@hookform/resolvers": "^3.9.0",
     "autoprefixer": "^10.4.19",
     "axios": "^1.7.2",
+    "immer": "^10.1.1",
     "lazysizes": "^5.3.2",
     "lg-fullscreen": "^1.2.1",
     "lg-thumbnail": "^1.2.1",
@@ -22,8 +24,10 @@
     "next": "14.2.4",
     "react": "^18",
     "react-dom": "^18",
-    "react-hook-form": "^7.52.0",
-    "sweetalert2": "^11.12.2"
+    "react-hook-form": "^7.52.2",
+    "sweetalert2": "^11.12.2",
+    "yup": "^1.4.0",
+    "zustand": "^4.5.4"
   },
   "devDependencies": {
     "@types/axios": "^0.14.0",
